@@ -1,11 +1,14 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 interface HeaderProps {
   toggleSidebar: () => void;
   showBurger: boolean;
+  /** Bloc profil de l'utilisateur connecté (photo, nom, grade | station). */
+  userSlot: ReactNode;
 }
 
-export function Header({ toggleSidebar, showBurger }: HeaderProps) {
+export function Header({ toggleSidebar, showBurger, userSlot }: HeaderProps) {
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex justify-between items-center font-['Calibri','Arial',sans-serif] shrink-0 z-10">
       
@@ -60,14 +63,8 @@ export function Header({ toggleSidebar, showBurger }: HeaderProps) {
           </div>
         )}
 
-        {/* Profil Utilisateur */}
-        <div className="text-right leading-tight">
-          <p className="text-[13px] font-bold text-slate-800">J. Doe</p>
-          <p className="text-[11px] text-slate-500">Captain | Station 7</p>
-        </div>
-        <div className="w-8 h-8 bg-slate-100 border border-slate-300 rounded flex items-center justify-center text-slate-600 text-xs font-bold cursor-pointer hover:bg-slate-200 transition-colors">
-          JD
-        </div>
+        {/* Profil Utilisateur (utilisateur connecté, cliquable vers /profile) */}
+        {userSlot}
       </div>
 
     </header>
