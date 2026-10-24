@@ -119,6 +119,60 @@ export async function createUser(user: NewUser): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
+export type ProfileFields = {
+  username: string;
+  firstName: string;
+  lastName: string;
+  grade: string;
+  station: string;
+  avatarUrl: string | null;
+};
+
+/**
+ * Modifie les informations d'un profil. Renvoie :
+ *  - "ok"        : enregistré ;
+ *  - "taken"     : l'identifiant est déjà utilisé par un autre compte ;
+ *  - "not_found" : le compte n'existe plus.
+ * Le mot de passe et le rôle ne sont jamais touchés ici.
+ */
+export async function updateUserProfile(
+  id: string,
+  fields: ProfileFields
+): Promise<"ok" | "taken" | "not_found"> {
+  try {
+    const rows = await query<{ id: string }>(
+      `UPDATE users
+          SET username = $2,
+              first_name = $3,
+              last_name = $4,
+              grade = $5,
+              station = $6,
+              avatar_url = $7
+        WHERE id = $1
+          AND NOT EXISTS (
+            SELECT 1 FROM users WHERE lower(username) = lower($2) AND id <> $1
+          )
+        RETURNING id`,
+      [
+        id,
+        fields.username,
+        fields.firstName,
+        fields.lastName,
+        fields.grade,
+        fields.station,
+        fields.avatarUrl,
+      ]
+    );
+    if (rows.length > 0) return "ok";
+  } catch (error) {
+    // Filet de sécurité : deux modifications simultanées du même identifiant
+    if ((error as { code?: string }).code === "23505") return "taken";
+    throw error;
+  }
+  // Aucune ligne modifiée : soit l'identifiant est pris, soit le compte n'existe plus
+  return (await getUserById(id)) ? "taken" : "not_found";
+}
+
 export async function updatePassword(id: string, passwordHash: string): Promise<boolean> {
   const rows = await query<{ id: string }>(
     `UPDATE users

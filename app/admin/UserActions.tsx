@@ -7,6 +7,7 @@ import {
   toggleAdminAction,
   type ActionState,
 } from "./actions";
+import { EditUserForm, type EditableProfile } from "./EditUserForm";
 
 function Message({ state }: { state: ActionState }) {
   if (state.error) {
@@ -23,10 +24,12 @@ const buttonClass =
 
 export function UserActions({
   userId,
+  profile,
   isAdmin,
   isSelf,
 }: {
   userId: string;
+  profile: EditableProfile;
   isAdmin: boolean;
   isSelf: boolean;
 }) {
@@ -36,6 +39,10 @@ export function UserActions({
 
   return (
     <div className="flex flex-col gap-3 py-3">
+      <EditUserForm userId={userId} profile={profile} />
+
+      <hr className="border-slate-100" />
+
       <form action={resetAction}>
         <input type="hidden" name="userId" value={userId} />
         <div className="flex items-center gap-2">

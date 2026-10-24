@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
-import { createUser, deleteUser, setAdmin, updatePassword } from "@/lib/users";
-import { UUID_PATTERN, checkPassword, parseNewUser } from "@/lib/validation";
+import { createUser, deleteUser, setAdmin, updatePassword, updateUserProfile } from "@/lib/users";
+import { UUID_PATTERN, checkPassword, parseNewUser, parseProfileUpdate } from "@/lib/validation";
 
 export type ActionState = { error?: string; success?: string };
 
@@ -31,6 +31,28 @@ export async function createUserAction(
 
   revalidatePath("/admin");
   return { success: `Compte « ${rest.username} » créé.` };
+}
+
+export async function updateProfileAction(
+  _previous: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  await assertAdmin();
+
+  const id = targetId(formData);
+  if (!id) return { error: "Utilisateur invalide." };
+
+  const parsed = parseProfileUpdate(formData);
+  if (!parsed.ok) return { error: parsed.error };
+
+  const result = await updateUserProfile(id, parsed.value);
+  if (result === "taken") {
+    return { error: `L'identifiant « ${parsed.value.username} » est déjà utilisé.` };
+  }
+  if (result === "not_found") return { error: "Utilisateur introuvable." };
+
+  revalidatePath("/admin");
+  return { success: "Profil mis à jour." };
 }
 
 export async function resetPasswordAction(

@@ -65,7 +65,19 @@ async function AdminContent() {
                   </span>
                   <span className="text-[12px] text-slate-400 group-open:rotate-180 transition-transform">▾</span>
                 </summary>
-                <UserActions userId={user.id} isAdmin={user.isAdmin} isSelf={user.id === me.id} />
+                <UserActions
+                  userId={user.id}
+                  profile={{
+                    username: user.username,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    grade: user.grade,
+                    station: user.station,
+                    avatarUrl: user.avatarUrl,
+                  }}
+                  isAdmin={user.isAdmin}
+                  isSelf={user.id === me.id}
+                />
               </details>
             </li>
           ))}

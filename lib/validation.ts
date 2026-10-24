@@ -102,6 +102,40 @@ export function parseNewUser(formData: FormData): Result<NewUserInput> {
   };
 }
 
+export type ProfileInput = Omit<NewUserInput, "password" | "isAdmin">;
+
+/** Modification d'un profil existant (mêmes règles qu'à la création, sans mot de passe ni rôle). */
+export function parseProfileUpdate(formData: FormData): Result<ProfileInput> {
+  const get = (name: string) => String(formData.get(name) ?? "");
+
+  const username = normalizeUsername(get("username"));
+  const usernameError = checkUsername(username);
+  if (usernameError) return { ok: false, error: usernameError };
+
+  const firstName = parseShortText(get("firstName"), "Le prénom");
+  if (!firstName.ok) return firstName;
+  const lastName = parseShortText(get("lastName"), "Le nom");
+  if (!lastName.ok) return lastName;
+  const grade = parseShortText(get("grade"), "Le grade");
+  if (!grade.ok) return grade;
+  const station = parseShortText(get("station"), "La station");
+  if (!station.ok) return station;
+  const avatarUrl = parseAvatarUrl(get("avatarUrl"));
+  if (!avatarUrl.ok) return avatarUrl;
+
+  return {
+    ok: true,
+    value: {
+      username,
+      firstName: firstName.value,
+      lastName: lastName.value,
+      grade: grade.value,
+      station: station.value,
+      avatarUrl: avatarUrl.value,
+    },
+  };
+}
+
 /**
  * Page de retour après connexion. On n'accepte qu'un chemin interne du site :
  * sinon un lien piégé pourrait renvoyer l'utilisateur vers un site malveillant.
