@@ -7,6 +7,7 @@ import {
   type MapPoint,
   type MapZone,
 } from "@/lib/map-types";
+import { assembledBattalions } from "@/lib/map-geometry";
 import { celsiusToFahrenheit, compassPoint, type Weather } from "@/lib/weather";
 import type { WeatherState } from "./useWeather";
 
@@ -56,8 +57,8 @@ export function featureSignature(f: MapFeature, selected: boolean): string {
   ].join("|");
 }
 
-export function zoneSignature(z: MapZone, selected: boolean): string {
-  return [z.kind, z.name, z.color, JSON.stringify(z.points), selected ? "1" : "0"].join("|");
+export function zoneSignature(z: MapZone, selected: boolean, geometry: unknown): string {
+  return [z.kind, z.name, z.color, JSON.stringify(geometry), selected ? "1" : "0"].join("|");
 }
 
 export function buildMarkerIcon(L: typeof Leaflet, f: MapFeature, selected: boolean): Leaflet.DivIcon {
@@ -154,6 +155,9 @@ export function buildFeaturePopup(f: MapFeature, weather: WeatherState): HTMLEle
   return root;
 }
 
-export function buildZonePopup(z: MapZone): HTMLElement {
-  return popupShell(z.name, ZONE_META[z.kind].label);
+export function buildZonePopup(z: MapZone, all: MapZone[]): HTMLElement {
+  const root = popupShell(z.name, ZONE_META[z.kind].label);
+  const parts = assembledBattalions(z, all);
+  if (parts.length) appendLines(root, [{ label: "Bataillons", value: parts.map((b) => b.name).join(", ") }]);
+  return root;
 }

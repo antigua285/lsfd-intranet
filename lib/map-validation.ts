@@ -6,7 +6,7 @@ import {
   type MapPoint,
   type ZoneKind,
 } from "./map-types";
-import { parseShortText, type Result } from "./validation";
+import { UUID_PATTERN, parseShortText, type Result } from "./validation";
 
 /** Tout ce qui arrive d'une action serveur vient du navigateur : on revérifie TOUT. */
 
@@ -42,6 +42,20 @@ export function parsePosition(x: unknown, y: unknown): Result<{ x: number; y: nu
   if (!px.ok) return px;
   if (!py.ok) return py;
   return { ok: true, value: { x: px.value, y: py.value } };
+}
+
+/** Liste d'identifiants de bataillons (sans doublon). */
+export function parseMemberIds(raw: unknown): Result<string[]> {
+  if (!Array.isArray(raw)) return { ok: false, error: "Liste de bataillons invalide." };
+  if (raw.length > 100) return { ok: false, error: "Trop de bataillons dans un même bureau." };
+  const ids: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string" || !UUID_PATTERN.test(item)) {
+      return { ok: false, error: "Bataillon invalide." };
+    }
+    if (!ids.includes(item)) ids.push(item);
+  }
+  return { ok: true, value: ids };
 }
 
 export function parseColor(raw: unknown): Result<string> {

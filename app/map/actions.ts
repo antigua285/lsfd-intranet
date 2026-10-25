@@ -9,6 +9,7 @@ import {
   deleteZone,
   isMissingMapTableError,
   listFeatures,
+  listZones,
   moveFeature,
   updateFeature,
   updateZone,
@@ -19,6 +20,7 @@ import {
   parseDetails,
   parseFeatureKind,
   parseMapName,
+  parseMemberIds,
   parsePoints,
   parsePosition,
   parseZoneKind,
@@ -109,10 +111,24 @@ export async function deleteFeatureAction(id: string): Promise<DeleteResult> {
   }) as Promise<DeleteResult>;
 }
 
-export async function createZoneAction(input: { kind: string; points: unknown }): Promise<ZoneResult> {
+export async function createZoneAction(input: {
+  kind: string;
+  points?: unknown;
+  /** Bureau « assemblage » : bataillons à combiner (peut être vide au départ). */
+  members?: unknown;
+}): Promise<ZoneResult> {
   return guarded<ZoneResult>(async () => {
     const kind = parseZoneKind(input?.kind);
     if (!kind.ok) return kind;
+
+    if (input.members !== undefined) {
+      if (kind.value !== "bureau") return { ok: false, error: "Seul un bureau peut être un assemblage." };
+      const members = await checkedMembers(input.members, null);
+      if (!members.ok) return members;
+      const zone = await createZone({ kind: "bureau", points: [], members: members.value });
+      return { ok: true, zone };
+    }
+
     const points = parsePoints(input.points);
     if (!points.ok) return points;
     const zone = await createZone({ kind: kind.value, points: points.value });
@@ -120,10 +136,27 @@ export async function createZoneAction(input: { kind: string; points: unknown })
   }) as Promise<ZoneResult>;
 }
 
-/** Ne modifie que les champs fournis (nom, type, couleur et/ou forme). */
+/** Vérifie que chaque identifiant est bien un bataillon existant (et pas la zone elle-même). */
+async function checkedMembers(
+  raw: unknown,
+  selfId: string | null
+): Promise<{ ok: true; value: string[] } | { ok: false; error: string }> {
+  const ids = parseMemberIds(raw);
+  if (!ids.ok) return ids;
+  const zones = await listZones();
+  for (const id of ids.value) {
+    const zone = zones.find((z) => z.id === id);
+    if (!zone || zone.kind !== "battalion" || id === selfId) {
+      return { ok: false, error: "Un des bataillons choisis n'existe plus. Recharge la page." };
+    }
+  }
+  return ids;
+}
+
+/** Ne modifie que les champs fournis (nom, type, couleur, forme et/ou assemblage de bataillons). */
 export async function updateZoneAction(
   id: string,
-  fields: { name?: string; kind?: string; color?: string; points?: unknown }
+  fields: { name?: string; kind?: string; color?: string; points?: unknown; members?: unknown }
 ): Promise<ZoneResult> {
   return guarded<ZoneResult>(async () => {
     if (!isId(id)) return { ok: false, error: "Élément invalide." };
@@ -137,6 +170,8 @@ export async function updateZoneAction(
       const kind = parseZoneKind(fields.kind);
       if (!kind.ok) return kind;
       patch.kind = kind.value;
+      // Un bataillon n'est jamais un assemblage.
+      if (kind.value === "battalion") patch.members = null;
     }
     if (fields?.color !== undefined) {
       const color = parseColor(fields.color);
@@ -147,6 +182,15 @@ export async function updateZoneAction(
       const points = parsePoints(fields.points);
       if (!points.ok) return points;
       patch.points = points.value;
+    }
+    if (fields?.members !== undefined && patch.kind !== "battalion") {
+      if (fields.members === null) {
+        patch.members = null;
+      } else {
+        const members = await checkedMembers(fields.members, id);
+        if (!members.ok) return members;
+        patch.members = members.value;
+      }
     }
     const zone = await updateZone(id, patch);
     return zone ? { ok: true, zone } : { ok: false, error: NOT_FOUND };

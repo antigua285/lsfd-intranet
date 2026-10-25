@@ -13,12 +13,15 @@ import {
 export function isMissingMapTableError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
   return (
-    e?.code === "42P01" || /relation "?map_(features|zones)"? does not exist/i.test(e?.message ?? "")
+    e?.code === "42P01" ||
+    e?.code === "42703" ||
+    /relation "?map_(features|zones)"? does not exist/i.test(e?.message ?? "") ||
+    /column "?members"? .*does not exist/i.test(e?.message ?? "")
   );
 }
 
 const FEATURE_COLUMNS = `id, kind, name, x, y, details`;
-const ZONE_COLUMNS = `id, kind, name, color, points`;
+const ZONE_COLUMNS = `id, kind, name, color, points, members`;
 
 export async function listFeatures(): Promise<MapFeature[]> {
   return query<MapFeature>(`SELECT ${FEATURE_COLUMNS} FROM map_features ORDER BY name`);
@@ -86,6 +89,7 @@ export async function createZone(input: {
   name?: string;
   color?: string;
   points: MapPoint[];
+  members?: string[] | null;
 }): Promise<MapZone> {
   let name = input.name;
   if (!name) {
@@ -96,25 +100,39 @@ export async function createZone(input: {
     name = `${ZONE_META[input.kind].label} ${(row?.n ?? 0) + 1}`;
   }
   const [created] = await query<MapZone>(
-    `INSERT INTO map_zones (kind, name, color, points)
-     VALUES ($1, $2, $3, $4::jsonb)
+    `INSERT INTO map_zones (kind, name, color, points, members)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
      RETURNING ${ZONE_COLUMNS}`,
-    [input.kind, name, input.color ?? ZONE_META[input.kind].defaultColor, JSON.stringify(input.points)]
+    [
+      input.kind,
+      name,
+      input.color ?? ZONE_META[input.kind].defaultColor,
+      JSON.stringify(input.points),
+      input.members ? JSON.stringify(input.members) : null,
+    ]
   );
   return created;
 }
 
-/** Met à jour uniquement les champs fournis. */
+/** Met à jour uniquement les champs fournis (`members: null` = retirer l'assemblage). */
 export async function updateZone(
   id: string,
-  fields: { name?: string; kind?: ZoneKind; color?: string; points?: MapPoint[] }
+  fields: {
+    name?: string;
+    kind?: ZoneKind;
+    color?: string;
+    points?: MapPoint[];
+    members?: string[] | null;
+  }
 ): Promise<MapZone | null> {
+  const setMembers = fields.members !== undefined;
   const rows = await query<MapZone>(
     `UPDATE map_zones
         SET name       = COALESCE($2, name),
             kind       = COALESCE($3, kind),
             color      = COALESCE($4, color),
             points     = COALESCE($5::jsonb, points),
+            members    = CASE WHEN $6::boolean THEN $7::jsonb ELSE members END,
             updated_at = now()
       WHERE id = $1
       RETURNING ${ZONE_COLUMNS}`,
@@ -124,12 +142,24 @@ export async function updateZone(
       fields.kind ?? null,
       fields.color ?? null,
       fields.points ? JSON.stringify(fields.points) : null,
+      setMembers,
+      setMembers && fields.members ? JSON.stringify(fields.members) : null,
     ]
   );
   return rows[0] ?? null;
 }
 
+/** Supprime la zone, et la retire des assemblages où elle figurait. */
 export async function deleteZone(id: string): Promise<boolean> {
   const rows = await query(`DELETE FROM map_zones WHERE id = $1 RETURNING id`, [id]);
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  await query(
+    `UPDATE map_zones
+        SET members = (SELECT COALESCE(jsonb_agg(m), '[]'::jsonb)
+                         FROM jsonb_array_elements(members) AS m
+                        WHERE m <> to_jsonb($1::text))
+      WHERE members IS NOT NULL AND members @> to_jsonb($1::text)`,
+    [id]
+  );
+  return true;
 }

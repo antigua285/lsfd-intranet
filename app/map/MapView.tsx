@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import "./map.css";
 import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
+import { usesAssembly, zoneGeometry } from "@/lib/map-geometry";
 import {
   FEATURE_META,
   MAP_IMAGE_URL,
@@ -280,8 +281,18 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
     for (const z of zones) {
       alive.add(z.id);
       const isSelected = selected?.type === "zone" && selected.id === z.id;
-      const sig = zoneSignature(z, isSelected);
-      const latlngs = z.points.map((p) => toLatLng(L, size, p));
+      // Forme à afficher : tracé propre, ou union des bataillons pour un bureau assemblé.
+      const geometry = zoneGeometry(z, zones);
+      if (geometry.length === 0) {
+        const stale = layers.get(z.id);
+        if (stale) {
+          stale.polygon.remove();
+          layers.delete(z.id);
+        }
+        continue;
+      }
+      const sig = zoneSignature(z, isSelected, geometry);
+      const latlngs = geometry.map((poly) => poly.map((ring) => ring.map((p) => toLatLng(L, size, p))));
       const style: Leaflet.PathOptions = {
         color: z.color,
         fillColor: z.color,
@@ -302,7 +313,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
           polygon.bindPopup(
             () => {
               const current = latest.current.zones.find((x) => x.id === z.id);
-              return buildZonePopup(current ?? z);
+              return buildZonePopup(current ?? z, latest.current.zones);
             },
             { maxWidth: 260 }
           );
@@ -335,12 +346,24 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
         layers.delete(id);
       }
     }
+
+    // Un bureau assemblé recouvre ses bataillons : on le passe derrière eux pour que
+    // les bataillons restent cliquables (le bureau se choisit depuis la liste des filtres).
+    for (const z of zones) {
+      const entry = layers.get(z.id);
+      if (entry && map.hasLayer(entry.polygon) && usesAssembly(z, zones)) entry.polygon.bringToBack();
+    }
   }, [mapVersion, zones, hidden, selected, editing, size]);
 
   /* ----------------------------------- poignées de la zone sélectionnée (édition) */
-  const selectedZone =
+  const selectedZoneRaw =
     editing && !tool && selected?.type === "zone"
       ? (zones.find((z) => z.id === selected.id) ?? null)
+      : null;
+  // Pas de poignées pour un bureau assemblé : sa forme vient de ses bataillons.
+  const selectedZone =
+    selectedZoneRaw && selectedZoneRaw.points.length >= 3 && !usesAssembly(selectedZoneRaw, zones)
+      ? selectedZoneRaw
       : null;
 
   useEffect(() => {
@@ -565,7 +588,22 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
     setSelected(null);
   }
 
-  async function saveZone(id: string, fields: { name: string; kind: ZoneKind; color: string }) {
+  async function createAssembly() {
+    const res = await run(() => createZoneAction({ kind: "bureau", members: [] }));
+    if (!res) return;
+    if (!res.ok) return setError(res.error);
+    setError(null);
+    setNotice(null);
+    setZones((previous) => [...previous, res.zone]);
+    setTool(null);
+    setDraft([]);
+    setSelected({ type: "zone", id: res.zone.id });
+  }
+
+  async function saveZone(
+    id: string,
+    fields: { name: string; kind: ZoneKind; color: string; members: string[] | null }
+  ) {
     const res = await run(() => updateZoneAction(id, fields));
     if (!res) return;
     if (!res.ok) {
@@ -583,7 +621,11 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
     if (!res) return;
     if (!res.ok) return setError(res.error);
     setError(null);
-    setZones((previous) => previous.filter((x) => x.id !== z.id));
+    setZones((previous) =>
+      previous
+        .filter((x) => x.id !== z.id)
+        .map((x) => (x.members?.includes(z.id) ? { ...x, members: x.members.filter((m) => m !== z.id) } : x))
+    );
     setSelected(null);
   }
 
@@ -622,7 +664,9 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
     });
     setTimeout(() => {
       const polygon = zoneLayers.current.get(id)?.polygon;
-      if (polygon) map.fitBounds(polygon.getBounds().pad(0.25));
+      if (!polygon) return;
+      map.fitBounds(polygon.getBounds().pad(0.25));
+      if (!editing) polygon.openPopup(polygon.getBounds().getCenter());
     }, 50);
     if (editing) {
       setTool(null);
@@ -677,6 +721,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
             onFinishDraft={() => void finishDraft()}
             onUndoDraft={() => setDraft((previous) => previous.slice(0, -1))}
             onCancelDraft={() => chooseTool(null)}
+            onCreateAssembly={() => void createAssembly()}
           />
         )}
 
@@ -700,6 +745,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
           <ZoneForm
             key={selectedZoneItem.id}
             zone={selectedZoneItem}
+            battalions={zones.filter((z) => z.kind === "battalion")}
             busy={busy}
             message={notice}
             onSave={(fields) => void saveZone(selectedZoneItem.id, fields)}

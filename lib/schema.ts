@@ -66,4 +66,7 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
+  // Un bureau peut être un ASSEMBLAGE de bataillons : "members" = liste des
+  // identifiants des bataillons. NULL = zone classique avec son propre tracé.
+  `ALTER TABLE map_zones ADD COLUMN IF NOT EXISTS members jsonb`,
 ];

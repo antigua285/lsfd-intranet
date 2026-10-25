@@ -41,7 +41,7 @@ export function Card({ title, children }: { title: string; children: React.React
 
 export function WeatherCard({ weather }: { weather: WeatherState }) {
   return (
-    <Card title="Météo · Los Santos">
+    <Card title="Météo · Los Angeles">
       {weather.status === "loading" && <p className="text-slate-500">Chargement…</p>}
       {weather.status === "error" && (
         <p className="text-slate-500">Météo indisponible pour le moment.</p>
@@ -232,6 +232,7 @@ export function ToolsCard({
   onFinishDraft,
   onUndoDraft,
   onCancelDraft,
+  onCreateAssembly,
   busy,
 }: {
   tool: Tool;
@@ -240,6 +241,7 @@ export function ToolsCard({
   onFinishDraft: () => void;
   onUndoDraft: () => void;
   onCancelDraft: () => void;
+  onCreateAssembly: () => void;
   busy: boolean;
 }) {
   const same = (a: Tool, b: Tool) => a?.type === b?.type && a?.kind === b?.kind;
@@ -264,6 +266,14 @@ export function ToolsCard({
       <div className="grid grid-cols-2 gap-1.5">
         {FEATURE_KINDS.map((kind) => button(`+ ${FEATURE_META[kind].label}`, { type: "point", kind }))}
         {ZONE_KINDS.map((kind) => button(`+ Zone : ${ZONE_META[kind].label}`, { type: "zone", kind }))}
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onCreateAssembly}
+          className="col-span-2 text-left text-[12px] rounded border border-slate-300 bg-white text-slate-700 px-2 py-1.5 hover:bg-slate-100 disabled:opacity-50 transition-colors"
+        >
+          + Bureau : assemblage de bataillons
+        </button>
       </div>
 
       <p className="mt-2 text-[12px] text-slate-500" data-testid="tool-hint">
@@ -372,20 +382,29 @@ export function FeatureForm({
 
 export function ZoneForm({
   zone,
+  battalions,
   busy,
   message,
   onSave,
   onDelete,
 }: {
   zone: MapZone;
+  /** Tous les bataillons existants (pour composer un bureau). */
+  battalions: MapZone[];
   busy: boolean;
   message: string | null;
-  onSave: (fields: { name: string; kind: ZoneKind; color: string }) => void;
+  onSave: (fields: { name: string; kind: ZoneKind; color: string; members: string[] | null }) => void;
   onDelete: () => void;
 }) {
   const [name, setName] = useState(zone.name);
   const [kind, setKind] = useState<ZoneKind>(zone.kind);
   const [color, setColor] = useState(zone.color);
+  const [members, setMembers] = useState<string[]>(
+    (zone.members ?? []).filter((id) => battalions.some((b) => b.id === id))
+  );
+  const toggleMember = (id: string) =>
+    setMembers((previous) => (previous.includes(id) ? previous.filter((m) => m !== id) : [...previous, id]));
+  const hasOwnShape = zone.points.length >= 3;
 
   return (
     <Card title={`Modifier : ${ZONE_META[zone.kind].label}`}>
@@ -393,7 +412,7 @@ export function ZoneForm({
         className="flex flex-col gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          onSave({ name, kind, color });
+          onSave({ name, kind, color, members: kind === "bureau" ? members : null });
         }}
       >
         <label className="flex flex-col gap-0.5">
@@ -433,10 +452,43 @@ export function ZoneForm({
             />
           </div>
         </div>
-        <p className="text-[11px] text-slate-500">
-          Forme : glisse les ronds blancs pour déformer la zone, clique un petit rond foncé pour ajouter un
-          sommet, clic droit sur un rond blanc pour le supprimer.
-        </p>
+        {kind === "bureau" && (
+          <fieldset className="border border-slate-200 rounded p-2">
+            <legend className="px-1 text-[11px] text-slate-500">Assembler des bataillons</legend>
+            {battalions.length === 0 ? (
+              <p className="text-[12px] text-slate-500">Aucun bataillon n&apos;est encore tracé.</p>
+            ) : (
+              <ul className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
+                {sortByName(battalions).map((b) => (
+                  <li key={b.id}>
+                    <label className="flex items-center gap-2 text-[13px]">
+                      <input
+                        type="checkbox"
+                        checked={members.includes(b.id)}
+                        onChange={() => toggleMember(b.id)}
+                        className="h-4 w-4 accent-[#0d2644]"
+                      />
+                      {b.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-1 text-[11px] text-slate-500">
+              {members.length > 0
+                ? "La forme du bureau est la réunion des bataillons cochés : elle suit leurs modifications."
+                : hasOwnShape
+                  ? "Aucun bataillon coché : le bureau garde son propre tracé."
+                  : "Coche au moins un bataillon pour que ce bureau apparaisse sur la carte."}
+            </p>
+          </fieldset>
+        )}
+        {!(kind === "bureau" && members.length > 0) && (
+          <p className="text-[11px] text-slate-500">
+            Forme : glisse les ronds blancs pour déformer la zone, clique un petit rond foncé pour ajouter
+            un sommet, clic droit sur un rond blanc pour le supprimer.
+          </p>
+        )}
         <FormFooter busy={busy} message={message} onDelete={onDelete} />
       </form>
     </Card>

@@ -27,7 +27,10 @@ export type MapZone = {
   kind: ZoneKind;
   name: string;
   color: string;
+  /** Tracé propre à la zone (conservé même quand le bureau est un assemblage). */
   points: MapPoint[];
+  /** Bureaux uniquement : bataillons assemblés. Vide ou null = on utilise `points`. */
+  members: string[] | null;
 };
 
 /** Fichier de fond de carte : à placer dans le dossier `public` du projet. */
