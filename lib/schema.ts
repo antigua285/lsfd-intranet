@@ -39,4 +39,31 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at     timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS org_nodes_parent_idx ON org_nodes (parent_id, position)`,
+
+  // Carte interactive. Les positions sont des FRACTIONS de l'image (0 = bord
+  // gauche / haut, 1 = bord droit / bas) : si tu remplaces map.png par une image
+  // d'une autre taille, les points restent au bon endroit.
+  // "kind" n'est volontairement pas verrouillé en base : on pourra ajouter de
+  // nouveaux types de points sans migration.
+  `CREATE TABLE IF NOT EXISTS map_features (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    kind       text NOT NULL,
+    name       text NOT NULL,
+    x          double precision NOT NULL CHECK (x BETWEEN 0 AND 1),
+    y          double precision NOT NULL CHECK (y BETWEEN 0 AND 1),
+    details    jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS map_features_kind_idx ON map_features (kind)`,
+  // Zones (bataillons, bureaux...) : un polygone = liste de sommets [x, y].
+  `CREATE TABLE IF NOT EXISTS map_zones (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    kind       text NOT NULL,
+    name       text NOT NULL,
+    color      text NOT NULL DEFAULT '#2563eb',
+    points     jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
 ];

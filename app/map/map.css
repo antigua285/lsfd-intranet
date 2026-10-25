@@ -1,0 +1,178 @@
+/* Carte : habillage des points, zones et poignées d'édition. */
+
+.lsfd-map {
+  background: #d1d5db;
+  font-family: inherit;
+}
+.lsfd-map.is-tool,
+.lsfd-map.is-tool .leaflet-interactive {
+  cursor: crosshair;
+}
+
+/* --- Points ---------------------------------------------------------- */
+.lm-wrap {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font: 700 11px/1 Arial, Helvetica, sans-serif;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
+}
+.lm.is-selected {
+  box-shadow: 0 0 0 3px #0d2644, 0 0 0 5px rgba(255, 255, 255, 0.95);
+}
+
+.lm-station {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #b91c1c;
+}
+
+.lm-hydrant {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+}
+.lm-hydrant::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+.lm-hydrant.st-to_check {
+  background: #f59e0b;
+}
+.lm-hydrant.st-out_of_service {
+  background: #6b7280;
+}
+.lm-hydrant.st-out_of_service::after {
+  content: "";
+  width: 8px;
+  height: 2px;
+  border-radius: 0;
+}
+
+.lm-risk {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  background: #ea580c;
+  transform: rotate(45deg);
+}
+.lm-risk span {
+  transform: rotate(-45deg);
+  font-size: 13px;
+}
+.lm-risk.hz-low {
+  background: #ca8a04;
+}
+.lm-risk.hz-high {
+  background: #991b1b;
+}
+
+.lm-weather {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  font-size: 15px;
+}
+
+/* --- Zones ----------------------------------------------------------- */
+.leaflet-tooltip.zone-label {
+  background: rgba(255, 255, 255, 0.85);
+  border: 0;
+  border-radius: 3px;
+  box-shadow: none;
+  color: #111827;
+  font: 700 11px/1.2 Arial, Helvetica, sans-serif;
+  padding: 2px 6px;
+  pointer-events: none;
+}
+.leaflet-tooltip.zone-label::before {
+  display: none;
+}
+
+/* --- Poignées d'édition des zones ------------------------------------ */
+.lv-wrap {
+  background: none;
+  border: none;
+}
+.lv {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #0d2644;
+  box-sizing: border-box;
+  cursor: move;
+}
+.lv-mid {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0d2644;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+  opacity: 0.65;
+  cursor: copy;
+}
+.lv-draft {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f6b26b;
+  border: 2px solid #0d2644;
+  box-sizing: border-box;
+}
+
+/* --- Fiches (popups) ------------------------------------------------- */
+.lsfd-popup {
+  font: 13px/1.4 Arial, Helvetica, sans-serif;
+  min-width: 190px;
+}
+.lsfd-popup h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0d2644;
+}
+.lsfd-popup .sub {
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+.lsfd-popup dl {
+  margin: 0;
+}
+.lsfd-popup dt {
+  color: #64748b;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.lsfd-popup dd {
+  margin: 0;
+  white-space: pre-line;
+}
+.lsfd-popup .flag {
+  margin-top: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 700;
+  padding: 3px 6px;
+  border-radius: 3px;
+}
