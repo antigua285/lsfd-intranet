@@ -69,4 +69,44 @@ export const SCHEMA_STATEMENTS: string[] = [
   // Un bureau peut être un ASSEMBLAGE de bataillons : "members" = liste des
   // identifiants des bataillons. NULL = zone classique avec son propre tracé.
   `ALTER TABLE map_zones ADD COLUMN IF NOT EXISTS members jsonb`,
+
+  // Formulaires : la structure (champs, règles carte) est une description stockée en
+  // JSON, pas du code. Un formulaire = en-tête (titre, sous-titre...) + définition.
+  `CREATE TABLE IF NOT EXISTS forms (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title        text NOT NULL,
+    subtitle     text NOT NULL DEFAULT '',
+    header_lines jsonb NOT NULL DEFAULT '[]'::jsonb,
+    footer       text NOT NULL DEFAULT '',
+    definition   jsonb NOT NULL,
+    published    boolean NOT NULL DEFAULT false,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now()
+  )`,
+  // Rapports reçus. On garde une COPIE du formulaire tel qu'il était à l'envoi
+  // (form_snapshot) : modifier ou supprimer le formulaire plus tard ne change pas les
+  // rapports déjà envoyés.
+  `CREATE TABLE IF NOT EXISTS form_submissions (
+    id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    form_id        uuid REFERENCES forms(id) ON DELETE SET NULL,
+    form_title     text NOT NULL,
+    form_snapshot  jsonb NOT NULL,
+    answers        jsonb NOT NULL,
+    labels         jsonb NOT NULL DEFAULT '{}'::jsonb,
+    summary        text NOT NULL DEFAULT '',
+    submitted_by   uuid REFERENCES users(id) ON DELETE SET NULL,
+    submitter_name text NOT NULL,
+    status         text NOT NULL DEFAULT 'new',
+    effects        jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at     timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS form_submissions_form_idx ON form_submissions (form_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS form_submissions_date_idx ON form_submissions (created_at DESC)`,
+  // Quels rapports concernent quel point de la carte (historique d'une borne, etc.).
+  `CREATE TABLE IF NOT EXISTS map_feature_reports (
+    feature_id    uuid NOT NULL REFERENCES map_features(id) ON DELETE CASCADE,
+    submission_id uuid NOT NULL REFERENCES form_submissions(id) ON DELETE CASCADE,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (feature_id, submission_id)
+  )`,
 ];

@@ -12,6 +12,14 @@ import { UUID_PATTERN, parseShortText, type Result } from "./validation";
 
 export const MAX_ZONE_POINTS = 200;
 
+/** « 2026-10-26 » valide (le 31 février est refusé). */
+export function isValidIsoDate(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3];
+}
+
 export function parseFeatureKind(raw: unknown): Result<FeatureKind> {
   return (FEATURE_KINDS as readonly unknown[]).includes(raw)
     ? { ok: true, value: raw as FeatureKind }
@@ -104,6 +112,9 @@ export function parseDetails(kind: FeatureKind, raw: unknown): Result<Record<str
     }
     if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(clean)) {
       return { ok: false, error: `${field.label} contient des caractères invalides.` };
+    }
+    if (field.type === "date" && !isValidIsoDate(clean)) {
+      return { ok: false, error: `${field.label} : date invalide.` };
     }
     if (field.options && !field.options.some((o) => o.value === clean)) {
       return { ok: false, error: `${field.label} : choix invalide.` };

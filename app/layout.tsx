@@ -22,6 +22,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} flex flex-col h-screen overflow-hidden bg-slate-100`}>
         <OfficialBanner />
+        {/* Sur les pages à adresse dynamique (/reports/[id]…) l'URL n'est connue qu'à la requête : le menu est diffusé après coup. */}
+        <Suspense fallback={null}>
         <DashboardLayout
           userSlot={
             // La session se lit à chaque requête : elle doit être derrière un Suspense
@@ -32,6 +34,7 @@ export default function RootLayout({
         >
           {children}
         </DashboardLayout>
+        </Suspense>
       </body>
     </html>
   );

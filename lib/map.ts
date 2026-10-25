@@ -21,10 +21,31 @@ export function isMissingMapTableError(error: unknown): boolean {
 }
 
 const FEATURE_COLUMNS = `id, kind, name, x, y, details`;
+
+// Même liste + dernier rapport lié au point (NULL s'il n'y en a pas).
+const FEATURE_WITH_REPORT = `
+  SELECT f.id, f.kind, f.name, f.x, f.y, f.details,
+         CASE WHEN r.submission_id IS NULL THEN NULL
+              ELSE jsonb_build_object('id', r.submission_id, 'title', r.title, 'at', r.created_at)
+         END AS "lastReport"
+    FROM map_features f
+    LEFT JOIN LATERAL (
+      SELECT l.submission_id, s.form_title AS title, l.created_at
+        FROM map_feature_reports l
+        JOIN form_submissions s ON s.id = l.submission_id
+       WHERE l.feature_id = f.id
+       ORDER BY l.created_at DESC
+       LIMIT 1
+    ) r ON true`;
 const ZONE_COLUMNS = `id, kind, name, color, points, members`;
 
 export async function listFeatures(): Promise<MapFeature[]> {
-  return query<MapFeature>(`SELECT ${FEATURE_COLUMNS} FROM map_features ORDER BY name`);
+  return query<MapFeature>(`${FEATURE_WITH_REPORT} ORDER BY f.name`);
+}
+
+export async function getFeature(id: string): Promise<MapFeature | null> {
+  const rows = await query<MapFeature>(`${FEATURE_WITH_REPORT} WHERE f.id = $1`, [id]);
+  return rows[0] ?? null;
 }
 
 export async function listZones(): Promise<MapZone[]> {
@@ -59,24 +80,24 @@ export async function updateFeature(
   id: string,
   fields: { name: string; details: Record<string, string> }
 ): Promise<MapFeature | null> {
-  const rows = await query<MapFeature>(
+  const rows = await query(
     `UPDATE map_features
         SET name = $2, details = $3::jsonb, updated_at = now()
       WHERE id = $1
-      RETURNING ${FEATURE_COLUMNS}`,
+      RETURNING id`,
     [id, fields.name, JSON.stringify(fields.details)]
   );
-  return rows[0] ?? null;
+  return rows.length ? getFeature(id) : null;
 }
 
 export async function moveFeature(id: string, x: number, y: number): Promise<MapFeature | null> {
-  const rows = await query<MapFeature>(
+  const rows = await query(
     `UPDATE map_features SET x = $2, y = $3, updated_at = now()
       WHERE id = $1
-      RETURNING ${FEATURE_COLUMNS}`,
+      RETURNING id`,
     [id, x, y]
   );
-  return rows[0] ?? null;
+  return rows.length ? getFeature(id) : null;
 }
 
 export async function deleteFeature(id: string): Promise<boolean> {

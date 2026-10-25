@@ -54,7 +54,7 @@ async function MapContent() {
       {missingTable ? (
         <MissingTableNotice isAdmin={me.isAdmin} />
       ) : (
-        <MapView initialFeatures={features} initialZones={zones} editing={false} />
+        <MapView initialFeatures={features} initialZones={zones} editing={false} showReportLinks={me.isAdmin} />
       )}
     </>
   );

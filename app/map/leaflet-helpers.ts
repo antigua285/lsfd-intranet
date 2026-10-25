@@ -127,7 +127,7 @@ function popupShell(title: string, subtitle: string): HTMLElement {
   return root;
 }
 
-export function buildFeaturePopup(f: MapFeature, weather: WeatherState): HTMLElement {
+export function buildFeaturePopup(f: MapFeature, weather: WeatherState, showReportLinks = false): HTMLElement {
   const root = popupShell(f.name, FEATURE_META[f.kind].label);
 
   if (f.kind === "weather") {
@@ -152,6 +152,23 @@ export function buildFeaturePopup(f: MapFeature, weather: WeatherState): HTMLEle
 
   const lines = detailLines(f);
   if (lines.length) appendLines(root, lines);
+  if (f.lastReport) {
+    const when = new Date(f.lastReport.at).toLocaleDateString("fr-FR");
+    const p = document.createElement("div");
+    p.className = "last-report";
+    p.style.marginTop = "6px";
+    p.append("Dernier rapport : ");
+    if (showReportLinks) {
+      const a = document.createElement("a");
+      a.href = `/reports/${f.lastReport.id}`;
+      a.textContent = `${f.lastReport.title} — ${when}`;
+      a.style.textDecoration = "underline";
+      p.appendChild(a);
+    } else {
+      p.append(`${f.lastReport.title} — ${when}`);
+    }
+    root.appendChild(p);
+  }
   return root;
 }
 

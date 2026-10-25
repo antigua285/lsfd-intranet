@@ -356,6 +356,13 @@ export function FeatureForm({
                   </option>
                 ))}
               </select>
+            ) : field.type === "date" ? (
+              <input
+                type="date"
+                className={INPUT}
+                value={details[field.key] ?? ""}
+                onChange={(e) => set(field.key, e.target.value)}
+              />
             ) : field.multiline ? (
               <textarea
                 className={INPUT}

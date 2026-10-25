@@ -18,6 +18,8 @@ export type MapFeature = {
   /** Position en fraction de l'image : 0 = haut, 1 = bas. */
   y: number;
   details: Record<string, string>;
+  /** Dernier rapport (formulaire) lié à ce point, s'il y en a un. */
+  lastReport?: { id: string; title: string; at: string } | null;
 };
 
 export type MapPoint = [number, number];
@@ -65,6 +67,8 @@ export type DetailField = {
   label: string;
   max: number;
   multiline?: boolean;
+  /** "date" : calendrier (AAAA-MM-JJ). */
+  type?: "date";
   options?: { value: string; label: string }[];
 };
 
@@ -101,6 +105,7 @@ export const DETAIL_FIELDS: Record<FeatureKind, DetailField[]> = {
         { value: "out_of_service", label: "Hors service" },
       ],
     },
+    { key: "lastInspection", label: "Dernière inspection", max: 10, type: "date" },
     { key: "address", label: "Emplacement / adresse", max: 120 },
     { key: "notes", label: "Remarques", max: 300, multiline: true },
   ],
@@ -141,7 +146,11 @@ export function detailLines(feature: MapFeature): { label: string; value: string
   for (const field of DETAIL_FIELDS[feature.kind]) {
     const raw = feature.details[field.key];
     if (!raw) continue;
-    lines.push({ label: field.label, value: optionLabel(feature.kind, field.key, raw) });
+    const value =
+      field.type === "date"
+        ? raw.replace(/^(\d{4})-(\d{2})-(\d{2})$/, "$2/$3/$1")
+        : optionLabel(feature.kind, field.key, raw);
+    lines.push({ label: field.label, value });
   }
   return lines;
 }

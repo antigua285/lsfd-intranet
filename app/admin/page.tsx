@@ -3,6 +3,7 @@ import { Avatar } from "@/components/Avatar";
 import { WidgetWrapper } from "@/components/WidgetWrapper";
 import { requireAdmin } from "@/lib/auth";
 import { listUsers } from "@/lib/users";
+import { AdminNav } from "@/components/AdminNav";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserActions } from "./UserActions";
 
@@ -15,6 +16,7 @@ export default function AdminPage() {
       <p className="text-sm text-slate-500 mb-6">
         Création et gestion des comptes. Réservé aux modérateurs.
       </p>
+      <AdminNav current="/admin" />
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
         <AdminContent />
       </Suspense>

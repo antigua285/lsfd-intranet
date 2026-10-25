@@ -57,6 +57,8 @@ type Props = {
   initialZones: MapZone[];
   /** true = page "EDIT MAP" (réservée aux modérateurs). */
   editing: boolean;
+  /** Liens vers les rapports dans les fiches (modérateurs uniquement). */
+  showReportLinks?: boolean;
 };
 
 /** Zoom de départ au-dessus du dézoom maximum (0 = image entière visible, plus grand = plus près). */
@@ -64,7 +66,7 @@ const START_ZOOM_ABOVE_MIN = 0.5;
 
 const FILTER_STORAGE_KEY = "lsfd-map-hidden-v1";
 
-export function MapView({ initialFeatures, initialZones, editing }: Props) {
+export function MapView({ initialFeatures, initialZones, editing, showReportLinks = false }: Props) {
   const [features, setFeatures] = useState(initialFeatures);
   const [zones, setZones] = useState(initialZones);
   const [selected, setSelected] = useState<Selection>(null);
@@ -235,7 +237,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
           marker.bindPopup(
             () => {
               const current = latest.current.features.find((x) => x.id === f.id);
-              return buildFeaturePopup(current ?? f, latest.current.weather);
+              return buildFeaturePopup(current ?? f, latest.current.weather, showReportLinks);
             },
             { maxWidth: 300 }
           );
@@ -268,7 +270,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
         layers.delete(id);
       }
     }
-  }, [mapVersion, features, hidden, selected, editing, size]);
+  }, [mapVersion, features, hidden, selected, editing, size, showReportLinks]);
 
   /* ------------------------------------------------------------------- zones */
   useEffect(() => {
