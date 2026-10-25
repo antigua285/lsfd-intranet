@@ -20,6 +20,9 @@ export const SCHEMA_STATEMENTS: string[] = [
   )`,
   // Identifiant unique sans tenir compte des majuscules ("Dupont" = "dupont").
   `CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON users (lower(username))`,
+  // Numéro de téléphone (facultatif). Ajouté après coup : cette ligne met aussi
+  // à jour une base existante, sans toucher aux comptes déjà créés.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
 
   // Organigramme : un arbre. Chaque ligne a un parent (NULL = tout en haut) et un
   // rang parmi ses "frères". Le niveau d'affichage (noir, orange, gras...) se

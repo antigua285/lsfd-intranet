@@ -54,6 +54,22 @@ export function parseAvatarUrl(raw: string): Result<string | null> {
   }
 }
 
+/** Téléphone : facultatif. Chiffres, espaces et + - . ( ) # * uniquement (30 caractères max). */
+export function parsePhone(raw: string): Result<string | null> {
+  const value = raw.replace(/\s+/g, " ").trim();
+  if (!value) return { ok: true, value: null };
+  if (value.length > 30) {
+    return { ok: false, error: "Le numéro de téléphone est trop long (30 caractères max)." };
+  }
+  if (!/^[0-9+\-.()#* ]+$/.test(value) || !/[0-9]/.test(value)) {
+    return {
+      ok: false,
+      error: "Le numéro de téléphone ne peut contenir que des chiffres, espaces et + - . ( ).",
+    };
+  }
+  return { ok: true, value };
+}
+
 export type NewUserInput = {
   username: string;
   password: string;
@@ -62,6 +78,7 @@ export type NewUserInput = {
   grade: string;
   station: string;
   avatarUrl: string | null;
+  phone: string | null;
   isAdmin: boolean;
 };
 
@@ -86,6 +103,8 @@ export function parseNewUser(formData: FormData): Result<NewUserInput> {
   if (!station.ok) return station;
   const avatarUrl = parseAvatarUrl(get("avatarUrl"));
   if (!avatarUrl.ok) return avatarUrl;
+  const phone = parsePhone(get("phone"));
+  if (!phone.ok) return phone;
 
   return {
     ok: true,
@@ -97,6 +116,7 @@ export function parseNewUser(formData: FormData): Result<NewUserInput> {
       grade: grade.value,
       station: station.value,
       avatarUrl: avatarUrl.value,
+      phone: phone.value,
       isAdmin: get("isAdmin") === "on",
     },
   };
@@ -122,6 +142,8 @@ export function parseProfileUpdate(formData: FormData): Result<ProfileInput> {
   if (!station.ok) return station;
   const avatarUrl = parseAvatarUrl(get("avatarUrl"));
   if (!avatarUrl.ok) return avatarUrl;
+  const phone = parsePhone(get("phone"));
+  if (!phone.ok) return phone;
 
   return {
     ok: true,
@@ -132,6 +154,7 @@ export function parseProfileUpdate(formData: FormData): Result<ProfileInput> {
       grade: grade.value,
       station: station.value,
       avatarUrl: avatarUrl.value,
+      phone: phone.value,
     },
   };
 }

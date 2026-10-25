@@ -14,6 +14,7 @@ export type EditableProfile = {
   grade: string;
   station: string;
   avatarUrl: string | null;
+  phone: string | null;
 };
 
 export function EditUserForm({ userId, profile }: { userId: string; profile: EditableProfile }) {
@@ -22,6 +23,8 @@ export function EditUserForm({ userId, profile }: { userId: string; profile: Edi
     {}
   );
   const id = (name: string) => `${name}-${userId}`;
+  // En cas d'erreur, on remet ce qui venait d'être saisi (React vide sinon le formulaire).
+  const typed = (name: string, saved: string) => state.values?.[name] ?? saved;
 
   return (
     <form action={formAction} className="grid grid-cols-2 gap-x-4 gap-y-3">
@@ -29,20 +32,20 @@ export function EditUserForm({ userId, profile }: { userId: string; profile: Edi
 
       <div className="flex flex-col gap-1">
         <label htmlFor={id("firstName")} className={labelClass}>Prénom</label>
-        <input id={id("firstName")} name="firstName" type="text" maxLength={60} required defaultValue={profile.firstName} className={inputClass} />
+        <input id={id("firstName")} name="firstName" type="text" maxLength={60} required defaultValue={typed("firstName", profile.firstName)} className={inputClass} />
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor={id("lastName")} className={labelClass}>Nom</label>
-        <input id={id("lastName")} name="lastName" type="text" maxLength={60} required defaultValue={profile.lastName} className={inputClass} />
+        <input id={id("lastName")} name="lastName" type="text" maxLength={60} required defaultValue={typed("lastName", profile.lastName)} className={inputClass} />
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor={id("grade")} className={labelClass}>Grade</label>
-        <input id={id("grade")} name="grade" type="text" maxLength={60} required defaultValue={profile.grade} className={inputClass} />
+        <input id={id("grade")} name="grade" type="text" maxLength={60} required defaultValue={typed("grade", profile.grade)} className={inputClass} />
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor={id("station")} className={labelClass}>Station d&apos;affectation</label>
-        <input id={id("station")} name="station" type="text" maxLength={60} required defaultValue={profile.station} className={inputClass} />
+        <input id={id("station")} name="station" type="text" maxLength={60} required defaultValue={typed("station", profile.station)} className={inputClass} />
       </div>
 
       <div className="flex flex-col gap-1">
@@ -57,7 +60,7 @@ export function EditUserForm({ userId, profile }: { userId: string; profile: Edi
           minLength={3}
           maxLength={32}
           required
-          defaultValue={profile.username}
+          defaultValue={typed("username", profile.username)}
           className={inputClass}
         />
       </div>
@@ -69,7 +72,21 @@ export function EditUserForm({ userId, profile }: { userId: string; profile: Edi
           type="url"
           maxLength={500}
           placeholder="https://…"
-          defaultValue={profile.avatarUrl ?? ""}
+          defaultValue={typed("avatarUrl", profile.avatarUrl ?? "")}
+          className={inputClass}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor={id("phone")} className={labelClass}>Téléphone (vide = aucun)</label>
+        <input
+          id={id("phone")}
+          name="phone"
+          type="tel"
+          maxLength={30}
+          autoComplete="off"
+          placeholder="Ex. 555-0123"
+          defaultValue={typed("phone", profile.phone ?? "")}
           className={inputClass}
         />
       </div>

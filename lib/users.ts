@@ -9,6 +9,7 @@ export type PublicUser = {
   grade: string;
   station: string;
   avatarUrl: string | null;
+  phone: string | null;
   isAdmin: boolean;
   createdAt: Date;
 };
@@ -21,6 +22,7 @@ const PUBLIC_COLUMNS = `
   grade,
   station,
   avatar_url AS "avatarUrl",
+  phone,
   is_admin AS "isAdmin",
   created_at AS "createdAt"`;
 
@@ -95,14 +97,16 @@ export type NewUser = {
   grade: string;
   station: string;
   avatarUrl: string | null;
+  /** Facultatif */
+  phone?: string | null;
   isAdmin: boolean;
 };
 
 /** Renvoie l'id créé, ou null si l'identifiant existe déjà. */
 export async function createUser(user: NewUser): Promise<string | null> {
   const rows = await query<{ id: string }>(
-    `INSERT INTO users (username, password_hash, first_name, last_name, grade, station, avatar_url, is_admin)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO users (username, password_hash, first_name, last_name, grade, station, avatar_url, is_admin, phone)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      ON CONFLICT DO NOTHING
      RETURNING id`,
     [
@@ -114,6 +118,7 @@ export async function createUser(user: NewUser): Promise<string | null> {
       user.station,
       user.avatarUrl,
       user.isAdmin,
+      user.phone ?? null,
     ]
   );
   return rows[0]?.id ?? null;
@@ -126,6 +131,7 @@ export type ProfileFields = {
   grade: string;
   station: string;
   avatarUrl: string | null;
+  phone: string | null;
 };
 
 /**
@@ -147,7 +153,8 @@ export async function updateUserProfile(
               last_name = $4,
               grade = $5,
               station = $6,
-              avatar_url = $7
+              avatar_url = $7,
+              phone = $8
         WHERE id = $1
           AND NOT EXISTS (
             SELECT 1 FROM users WHERE lower(username) = lower($2) AND id <> $1
@@ -161,6 +168,7 @@ export async function updateUserProfile(
         fields.grade,
         fields.station,
         fields.avatarUrl,
+        fields.phone,
       ]
     );
     if (rows.length > 0) return "ok";

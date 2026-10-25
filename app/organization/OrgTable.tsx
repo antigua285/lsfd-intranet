@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import { indentPx, levelStyle } from "@/lib/org-levels";
 import { holderParts, type OrgRow } from "@/lib/org-types";
+import { ProfileHover, type ProfileCardData } from "./ProfileHover";
 
 /** Affichage en lecture seule de l'organigramme (le même pour tout le monde). */
 export function OrgTable({ rows }: { rows: OrgRow[] }) {
@@ -42,24 +44,42 @@ export function OrgTable({ rows }: { rows: OrgRow[] }) {
                     </td>
                     <td className={`px-2 py-[3px] align-middle ${style.holder}`}>
                       {parts && (
-                        <span className="inline-flex items-center gap-1.5">
-                          {row.holderUserId && (
-                            <Avatar
-                              src={row.holderAvatarUrl}
-                              firstName={row.holderFirstName ?? "?"}
-                              lastName={row.holderLastName ?? "?"}
-                              className="w-5 h-5 text-[9px]"
-                            />
-                          )}
-                          {parts.vacant ? (
-                            <span className="italic">Vacant{parts.role && ` (${parts.role})`}</span>
-                          ) : (
-                            <span>
-                              <span className="italic">{parts.name}</span>
-                              {parts.role && <span className="font-normal"> ({parts.role})</span>}
-                            </span>
-                          )}
-                        </span>
+                        <HolderCell
+                          content={
+                            <>
+                              {row.holderUserId && (
+                                <Avatar
+                                  src={row.holderAvatarUrl}
+                                  firstName={row.holderFirstName ?? "?"}
+                                  lastName={row.holderLastName ?? "?"}
+                                  className="w-5 h-5 text-[9px]"
+                                />
+                              )}
+                              {parts.vacant ? (
+                                <span className="italic">Vacant{parts.role && ` (${parts.role})`}</span>
+                              ) : (
+                                <span>
+                                  <span className="italic">{parts.name}</span>
+                                  {parts.role && <span className="font-normal"> ({parts.role})</span>}
+                                </span>
+                              )}
+                            </>
+                          }
+                          card={
+                            row.holderUserId && row.holderFirstName && row.holderLastName
+                              ? {
+                                  firstName: row.holderFirstName,
+                                  lastName: row.holderLastName,
+                                  grade: row.holderGrade ?? "",
+                                  station: row.holderStation ?? "",
+                                  phone: row.holderPhone,
+                                  avatarUrl: row.holderAvatarUrl,
+                                  role: row.role,
+                                  unit: row.title,
+                                }
+                              : null
+                          }
+                        />
                       )}
                     </td>
                   </tr>
@@ -90,6 +110,15 @@ export function OrgTable({ rows }: { rows: OrgRow[] }) {
       )}
     </div>
   );
+}
+
+/**
+ * Cellule du titulaire. Si un compte est lié, le nom ouvre une fiche de profil
+ * (survol / clic) ; sinon (poste vacant ou nom libre), simple texte.
+ */
+function HolderCell({ content, card }: { content: ReactNode; card: ProfileCardData | null }) {
+  if (card) return <ProfileHover data={card}>{content}</ProfileHover>;
+  return <span className="inline-flex items-center gap-1.5">{content}</span>;
 }
 
 /** Insère éventuellement une ligne d'espacement avant une ligne du tableau. */

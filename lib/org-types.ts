@@ -24,6 +24,9 @@ export type OrgNode = {
   holderFirstName: string | null;
   holderLastName: string | null;
   holderAvatarUrl: string | null;
+  holderGrade: string | null;
+  holderStation: string | null;
+  holderPhone: string | null;
   /** Titulaire sans compte (texte libre). Ignoré si un compte est lié. */
   holderName: string | null;
 };

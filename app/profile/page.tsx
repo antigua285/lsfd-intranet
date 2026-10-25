@@ -41,6 +41,12 @@ async function ProfileContent() {
             <dd className="text-slate-800">{user.grade}</dd>
             <dt className="text-slate-500">Station</dt>
             <dd className="text-slate-800">{user.station}</dd>
+            {user.phone && (
+              <>
+                <dt className="text-slate-500">Téléphone</dt>
+                <dd className="text-slate-800">{user.phone}</dd>
+              </>
+            )}
             <dt className="text-slate-500">Identifiant</dt>
             <dd className="text-slate-800">{user.username}</dd>
             <dt className="text-slate-500">Rôle</dt>

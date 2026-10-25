@@ -32,7 +32,10 @@ export async function listOrgNodes(): Promise<OrgNode[]> {
             n.holder_name    AS "holderName",
             u.first_name     AS "holderFirstName",
             u.last_name      AS "holderLastName",
-            u.avatar_url     AS "holderAvatarUrl"
+            u.avatar_url     AS "holderAvatarUrl",
+            u.grade          AS "holderGrade",
+            u.station        AS "holderStation",
+            u.phone          AS "holderPhone"
        FROM org_nodes n
        LEFT JOIN users u ON u.id = n.holder_user_id
       ORDER BY n.position, n.title`

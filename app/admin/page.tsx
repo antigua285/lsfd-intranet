@@ -74,6 +74,7 @@ async function AdminContent() {
                     grade: user.grade,
                     station: user.station,
                     avatarUrl: user.avatarUrl,
+                    phone: user.phone,
                   }}
                   isAdmin={user.isAdmin}
                   isSelf={user.id === me.id}
