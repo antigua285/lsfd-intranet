@@ -12,9 +12,9 @@ export const APP_MODULES = [
   },
   { 
     id: 2, 
-    title: "test", 
-    desc: "Status, active CAD incidents, units", 
-    link: "/documents",
+    title: "Organisation", 
+    desc: "Charte organisationnelle et personnel", 
+    link: "/organization",
     image: "/images/tag.png",
     // Chemin SVG (l'intérieur de la balise <svg>) pour garder les icônes dynamiques
     iconPath: "M3.75 6A2.25 2.25 0 0 1 6 3.75h1.5M20.25 6A2.25 2.25 0 0 0 18 3.75h-1.5M3.75 18A2.25 2.25 0 0 0 6 20.25h1.5M20.25 18A2.25 2.25 0 0 1 18 20.25h-1.5M9 11.25v1.5c0 1.243 1.119 2.25 2.5 2.25h1c1.381 0 2.5-1.007 2.5-2.25v-1.5m0 0c0-1.243-1.119-2.25-2.5-2.25h-1c-1.381 0-2.5 1.007-2.5 2.25Z"
