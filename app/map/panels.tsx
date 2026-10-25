@@ -41,7 +41,7 @@ export function Card({ title, children }: { title: string; children: React.React
 
 export function WeatherCard({ weather }: { weather: WeatherState }) {
   return (
-    <Card title="Météo · Los Angeles">
+    <Card title="Météo · Los Santos">
       {weather.status === "loading" && <p className="text-slate-500">Chargement…</p>}
       {weather.status === "error" && (
         <p className="text-slate-500">Météo indisponible pour le moment.</p>

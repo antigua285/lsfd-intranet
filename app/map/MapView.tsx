@@ -58,6 +58,9 @@ type Props = {
   editing: boolean;
 };
 
+/** Zoom de départ au-dessus du dézoom maximum (0 = image entière visible, plus grand = plus près). */
+const START_ZOOM_ABOVE_MIN = 0.5;
+
 const FILTER_STORAGE_KEY = "lsfd-map-hidden-v1";
 
 export function MapView({ initialFeatures, initialZones, editing }: Props) {
@@ -140,6 +143,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
     if (!size || !containerRef.current) return;
     let cancelled = false;
     let map: Leaflet.Map | null = null;
+    let resizeObserver: ResizeObserver | null = null;
     const featureMap = featureLayers.current;
     const zoneMap = zoneLayers.current;
 
@@ -160,12 +164,31 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
         doubleClickZoom: false,
         // Sans focus clavier : un clic sur la carte ne fait pas défiler la page.
         keyboard: false,
-        maxBounds: bounds.pad(0.35),
-        maxBoundsViscosity: 0.9,
+        // La carte ne peut pas sortir de l'image.
+        maxBounds: bounds,
+        maxBoundsViscosity: 1,
       });
       L.imageOverlay(MAP_IMAGE_URL, bounds).addTo(map);
-      map.fitBounds(bounds);
-      map.setMinZoom(map.getZoom() - 1);
+
+      // Dézoom maximum = l'image remplit tout le cadre (jamais de vide autour).
+      const fitLimits = (m: Leaflet.Map) => {
+        m.setMinZoom(m.getBoundsZoom(bounds, true));
+      };
+      fitLimits(map);
+
+      // Vue de départ : en bas de la carte (la ville), centrée horizontalement.
+      const startZoom = Math.min(map.getMaxZoom(), map.getMinZoom() + START_ZOOM_ABOVE_MIN);
+      const startHeight = map.getSize().y / Math.pow(2, startZoom);
+      map.setView([startHeight / 2, size.w / 2], startZoom, { animate: false });
+
+      // Si la fenêtre change de taille, on recalcule la limite de dézoom.
+      const observer = new ResizeObserver(() => {
+        if (!map) return;
+        map.invalidateSize();
+        fitLimits(map);
+      });
+      observer.observe(containerRef.current);
+      resizeObserver = observer;
 
       map.on("click", (e: Leaflet.LeafletMouseEvent) => latest.current.actions.mapClick(e.latlng));
 
@@ -176,6 +199,7 @@ export function MapView({ initialFeatures, initialZones, editing }: Props) {
 
     return () => {
       cancelled = true;
+      resizeObserver?.disconnect();
       map?.remove();
       mapRef.current = null;
       featureMap.clear();
