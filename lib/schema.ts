@@ -20,4 +20,20 @@ export const SCHEMA_STATEMENTS: string[] = [
   )`,
   // Identifiant unique sans tenir compte des majuscules ("Dupont" = "dupont").
   `CREATE UNIQUE INDEX IF NOT EXISTS users_username_key ON users (lower(username))`,
+
+  // Organigramme : un arbre. Chaque ligne a un parent (NULL = tout en haut) et un
+  // rang parmi ses "frères". Le niveau d'affichage (noir, orange, gras...) se
+  // déduit de la profondeur dans l'arbre, il n'est pas stocké.
+  `CREATE TABLE IF NOT EXISTS org_nodes (
+    id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    parent_id      uuid REFERENCES org_nodes(id) ON DELETE CASCADE,
+    position       integer NOT NULL DEFAULT 0,
+    title          text NOT NULL,
+    role           text NOT NULL DEFAULT '',
+    holder_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    holder_name    text,
+    note           text,
+    created_at     timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS org_nodes_parent_idx ON org_nodes (parent_id, position)`,
 ];
