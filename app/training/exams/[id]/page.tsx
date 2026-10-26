@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/access";
 import { closeExpiredAttempts, countAttempts, getExam, isAssigned, isMissingExamsTableError } from "@/lib/exams";
@@ -12,7 +12,7 @@ export const metadata = { title: "Examen | LSFD Intranet" };
 export default function ExamPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="max-w-2xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training/exams" className="text-[12px] text-slate-500 hover:underline">← Examens</Link>
+      <Breadcrumb items={[{ label: "Formation", href: "/training" }, { label: "Examens", href: "/training/exams" }, { label: "Passer l'examen" }]} />
       <Suspense fallback={<p className="text-sm text-slate-500 mt-3">Chargement…</p>}>
         <Content params={params} />
       </Suspense>

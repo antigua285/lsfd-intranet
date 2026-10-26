@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
+import { LinkButton } from "@/components/LinkButton";
 import { redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { closeExpiredAttempts, isMissingExamsTableError, listAssignedExams } from "@/lib/exams";
@@ -10,7 +12,7 @@ export const metadata = { title: "Examens | LSFD Intranet" };
 export default function ExamsPage() {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training" className="text-[12px] text-slate-500 hover:underline">← Formation</Link>
+      <Breadcrumb items={[{ label: "Formation", href: "/training" }, { label: "Examens" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Examens</h1>
       <p className="text-sm text-slate-500 mb-6">Les examens qui t&apos;ont été assignés. Pour commencer, saisis la clé d&apos;accès donnée par ton formateur.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
@@ -39,9 +41,8 @@ async function Content() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-4 text-[13px] font-bold">
-        <Link href="/training/exams/mine" className="text-[#0d2644] hover:underline">Mes examens →</Link>
-        {isTrainer(ctx) && <Link href="/training/exams/review" className="text-[#0d2644] hover:underline">Correction →</Link>}
-        {isTrainer(ctx) && <Link href="/training/exams/manage" className="text-[#0d2644] hover:underline">Clés et assignation →</Link>}
+        <LinkButton href="/training/exams/mine" testId="btn-mine">Mes résultats</LinkButton>
+        {isTrainer(ctx) && <LinkButton href="/training/td" variant="primary" testId="btn-td">Espace TD</LinkButton>}
       </div>
       {exams.length === 0 ? (
         <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen ne t&apos;a été assigné pour le moment.</p>

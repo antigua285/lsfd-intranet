@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { isMissingExamsTableError, listAssignments, listExamKeys, listExams, type Assignment } from "@/lib/exams";
@@ -9,10 +9,12 @@ import { ExamAssign } from "./ExamAssign";
 
 export const metadata = { title: "Clés et assignation | LSFD Intranet" };
 
-export default function ManageExamsPage() {
+export default function ManageExamsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training/exams" className="text-[12px] text-slate-500 hover:underline">← Examens</Link>
+      <Suspense fallback={null}>
+        <TrailFromParams page="manage" searchParams={searchParams} />
+      </Suspense>
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Clés et assignation</h1>
       <p className="text-sm text-slate-500 mb-6">Retrouve la clé de chaque examen et assigne-le à un membre. Réservé à la Training Division et aux modérateurs.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>

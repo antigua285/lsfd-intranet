@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { computeProgress, isMissingProbationTableError, listNotebooks, type NotebookRow } from "@/lib/probation";
@@ -10,7 +11,7 @@ export const metadata = { title: "Archives de probation | LSFD Intranet" };
 export default function ArchivesPage() {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training/probation" className="text-[12px] text-slate-500 hover:underline">← Probation</Link>
+      <Breadcrumb items={[{ label: "Formation", href: "/training" }, { label: "Espace TD", href: "/training/td" }, { label: "Probation", href: "/training/probation" }, { label: "Archives" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Archives</h1>
       <p className="text-sm text-slate-500 mb-6">Carnets archivés : consultables et restaurables, jamais perdus sans action explicite d&apos;un modérateur.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>

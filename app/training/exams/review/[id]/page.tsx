@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { closeExpiredAttempts, getAttempt, isMissingExamsTableError } from "@/lib/exams";
@@ -9,10 +9,12 @@ import { ExamGrader } from "../../ExamGrader";
 
 export const metadata = { title: "Correction | LSFD Intranet" };
 
-export default function ReviewAttemptPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ReviewAttemptPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training/exams/review" className="text-[12px] text-slate-500 hover:underline">← Correction des examens</Link>
+      <Suspense fallback={null}>
+        <TrailFromParams page="review-detail" searchParams={searchParams} />
+      </Suspense>
       <Suspense fallback={<p className="text-sm text-slate-500 mt-3">Chargement…</p>}>
         <Content params={params} />
       </Suspense>

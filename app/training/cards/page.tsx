@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
@@ -10,7 +10,7 @@ export const metadata = { title: "Cartes de révision | LSFD Intranet" };
 export default function CardsPage() {
   return (
     <div className="max-w-3xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training" className="text-[12px] text-slate-500 hover:underline">← Formation</Link>
+      <Breadcrumb items={[{ label: "Formation", href: "/training" }, { label: "Cartes de révision" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Cartes de révision</h1>
       <p className="text-sm text-slate-500 mb-6">Une question sur la documentation : retourne la carte pour voir la réponse.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>

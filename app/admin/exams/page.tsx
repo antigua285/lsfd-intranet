@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { LinkButton } from "@/components/LinkButton";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { isMissingExamsTableError, listExams } from "@/lib/exams";
@@ -38,8 +38,9 @@ async function Content() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/admin/exams/new" className="bg-[#0d2644] text-white text-[12px] font-bold uppercase tracking-wide rounded px-4 py-2 hover:bg-[#143a66]">Nouvel examen</Link>
-        <Link href="/training/exams/review" className="text-[12px] text-[#0d2644] font-bold hover:underline">Panneau de correction →</Link>
+        <LinkButton href="/admin/exams/new" variant="primary" testId="btn-new-exam">Nouvel examen</LinkButton>
+        <LinkButton href="/training/exams/review?from=admin" testId="btn-review">Corriger les copies</LinkButton>
+        <LinkButton href="/training/exams/manage?from=admin" testId="btn-manage">Clés et assignation</LinkButton>
       </div>
       {exams.length === 0 ? (
         <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen.</p>
@@ -53,7 +54,7 @@ async function Content() {
                   {exam.questions.length} question(s) · {formatPoints(totalPoints(exam.questions))} pts · {exam.durationMinutes ? `${exam.durationMinutes} min` : "sans chrono"} · {exam.published ? "Publié" : "Brouillon"}{exam.hasKey ? "" : " · sans clé"}
                 </p>
               </div>
-              <Link href={`/admin/exams/${exam.id}`} className="text-[12px] text-[#0d2644] font-bold hover:underline">Modifier</Link>
+              <LinkButton href={`/admin/exams/${exam.id}`}>Modifier</LinkButton>
               <DeleteExamButton id={exam.id} title={exam.title} />
             </li>
           ))}

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -39,9 +39,13 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   const archived = !!nb.archivedAt;
   return (
     <>
-      <Link href={trainer ? (archived ? "/training/probation/archives" : "/training/probation") : "/training"} className="text-[12px] text-slate-500 hover:underline">
-        ← {trainer ? (archived ? "Archives" : "Carnets") : "Formation"}
-      </Link>
+      <Breadcrumb
+        items={
+          trainer
+            ? [{ label: "Formation", href: "/training" }, { label: "Espace TD", href: "/training/td" }, { label: "Probation", href: "/training/probation" }, ...(archived ? [{ label: "Archives", href: "/training/probation/archives" }] : []), { label: nb.ownerName }]
+            : [{ label: "Formation", href: "/training" }, { label: "Mon carnet de probation" }]
+        }
+      />
       <NotebookView
         notebook={{ id: nb.id, ownerName: nb.ownerName, checked: nb.checked, createdAt: nb.createdAt, archivedAt: nb.archivedAt, archivedBy: nb.archivedBy }}
         categories={archived && nb.snapshot ? nb.snapshot.categories : template}

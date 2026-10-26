@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
@@ -7,10 +7,12 @@ import { CardManager } from "./CardManager";
 
 export const metadata = { title: "Gérer les cartes | LSFD Intranet" };
 
-export default function ManageCardsPage() {
+export default function ManageCardsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training/cards" className="text-[12px] text-slate-500 hover:underline">← Cartes de révision</Link>
+      <Suspense fallback={null}>
+        <TrailFromParams page="cards-manage" searchParams={searchParams} />
+      </Suspense>
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Gérer les cartes</h1>
       <p className="text-sm text-slate-500 mb-6">Ajout, modification et suppression des questions et réponses. Réservé à la TD et aux modérateurs.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>

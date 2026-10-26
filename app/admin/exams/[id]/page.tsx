@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound } from "next/navigation";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
@@ -16,7 +16,7 @@ export default function EditExamPage({ params }: { params: Promise<{ id: string 
       <h1 className="text-xl font-bold text-slate-800 uppercase">Administration</h1>
       <p className="text-sm text-slate-500 mb-4">Éditeur d&apos;examen.</p>
       <AdminNav current="/admin/exams" />
-      <Link href="/admin/exams" className="text-[12px] text-slate-500 hover:underline">← Tous les examens</Link>
+      <Breadcrumb items={[{ label: "Administration", href: "/admin" }, { label: "Examens", href: "/admin/exams" }, { label: "Éditeur d'examen" }]} />
       <Suspense fallback={<p className="text-sm text-slate-500 mt-3">Chargement…</p>}>
         <Content params={params} />
       </Suspense>

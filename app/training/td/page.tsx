@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { LinkButton } from "@/components/LinkButton";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
 import { closeExpiredAttempts, listAttempts, listExams } from "@/lib/exams";
@@ -11,7 +12,7 @@ export const metadata = { title: "Espace TD | LSFD Intranet" };
 export default function TdPage() {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
-      <Link href="/training" className="text-[12px] text-slate-500 hover:underline">← Formation</Link>
+      <Breadcrumb items={[{ label: "Formation", href: "/training" }, { label: "Espace TD" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Espace TD</h1>
       <p className="text-sm text-slate-500 mb-6">Tout ce dont la Training Division a besoin, au même endroit.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
@@ -48,8 +49,8 @@ function Block({ title, desc, count, countLabel, testId, links }: { title: strin
         )}
       </div>
       <div className="flex flex-wrap gap-2">
-        {links.map((l) => (
-          <Link key={l.href} href={l.href} className="text-[13px] font-bold border border-slate-300 rounded px-3 py-1.5 hover:bg-slate-50">{l.label}</Link>
+        {links.map((l, i) => (
+          <LinkButton key={l.href} href={l.href} variant={i === 0 ? "primary" : "secondary"}>{l.label}</LinkButton>
         ))}
       </div>
     </section>
@@ -83,7 +84,7 @@ async function Content() {
         desc="Passages rendus par les candidats, à noter et à renvoyer."
         count={toGrade}
         countLabel="à corriger"
-        links={[{ href: "/training/exams/review", label: "Corriger" }, { href: "/training/exams/review?status=sent", label: "Résultats envoyés" }]}
+        links={[{ href: "/training/exams/review", label: "Corriger les copies" }, { href: "/training/exams/review?status=sent", label: "Résultats envoyés" }]}
       />
       <Block
         testId="td-exams"
@@ -91,7 +92,7 @@ async function Content() {
         desc="Retrouve la clé de chaque examen et assigne-le à un membre."
         count={exams ? exams.length : null}
         countLabel="examens"
-        links={[{ href: "/training/exams/manage", label: "Clés et assignation" }, ...(ctx.user.isAdmin ? [{ href: "/admin/exams", label: "Créer / modifier les examens" }] : [])]}
+        links={[{ href: "/training/exams/manage", label: "Clés et assignation" }, ...(ctx.user.isAdmin ? [{ href: "/admin/exams", label: "Créer ou modifier les examens" }] : [])]}
       />
       <Block
         testId="td-probation"
@@ -99,7 +100,7 @@ async function Content() {
         desc={notebooks ? `${notebooks.eligible} carnet(s) éligible(s) à la phase deux.` : "Carnets de probation des pompiers."}
         count={notebooks ? notebooks.total : null}
         countLabel="carnets actifs"
-        links={[{ href: "/training/probation", label: "Carnets" }, { href: "/training/probation/template", label: "Modèle" }, { href: "/training/probation/archives", label: "Archives" }]}
+        links={[{ href: "/training/probation", label: "Ouvrir les carnets" }, { href: "/training/probation/template", label: "Modifier le modèle" }, { href: "/training/probation/archives", label: "Voir les archives" }]}
       />
       <Block
         testId="td-cards"
@@ -107,7 +108,7 @@ async function Content() {
         desc="Ajoute ou modifie les questions et réponses."
         count={cards ? cards.length : null}
         countLabel="cartes"
-        links={[{ href: "/training/cards/manage", label: "Gérer les cartes" }, { href: "/training/cards", label: "Réviser" }]}
+        links={[{ href: "/training/cards/manage?from=td", label: "Gérer les cartes" }, { href: "/training/cards", label: "Réviser" }]}
       />
     </div>
   );

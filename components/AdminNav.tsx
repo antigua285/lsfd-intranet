@@ -6,7 +6,7 @@ const TABS = [
   { href: "/admin/reports", label: "Rapports reçus" },
   { href: "/admin/access", label: "Accès & flags" },
   { href: "/admin/exams", label: "Examens" },
-  { href: "/training/cards/manage", label: "Cartes de révision" },
+  { href: "/training/cards/manage?from=admin", label: "Cartes de révision" },
 ];
 
 /** Petit menu commun aux pages de modération. */
