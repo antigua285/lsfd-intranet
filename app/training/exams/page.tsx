@@ -47,17 +47,27 @@ async function Content() {
         <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen ne t&apos;a été assigné pour le moment.</p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
-          {exams.filter((e) => e.questions.length > 0 && e.hasKey).map((exam) => (
-            <li key={exam.id}>
-              <Link href={`/training/exams/${exam.id}`} className="block border border-slate-200 rounded-lg p-4 hover:border-[#0d2644] hover:bg-slate-50 transition-colors">
-                <p className="text-[15px] font-bold text-slate-800">{exam.title}</p>
-                <p className="text-[12px] text-slate-500 mt-1">
-                  {exam.questions.length} question(s) · {formatPoints(totalPoints(exam.questions))} pts · {exam.durationMinutes ? `${exam.durationMinutes} min` : "sans limite de temps"}
-                </p>
-                <p className="text-[12px] mt-1 font-bold text-[#0d2644]">{exam.attemptsUsed === 0 ? "À passer" : `${exam.attemptsUsed} / ${exam.maxAttempts} tentative(s)`}</p>
-              </Link>
-            </li>
-          ))}
+          {exams.map((exam) => {
+            const ready = exam.published && exam.questions.length > 0 && exam.hasKey;
+            if (!ready)
+              return (
+                <li key={exam.id} data-testid="exam-unavailable" className="border border-dashed border-slate-300 rounded-lg p-4 bg-slate-50">
+                  <p className="text-[15px] font-bold text-slate-500">{exam.title}</p>
+                  <p className="text-[12px] text-slate-500 mt-1">Assigné, mais pas encore disponible : la Training Division doit encore le finaliser.</p>
+                </li>
+              );
+            return (
+              <li key={exam.id}>
+                <Link href={`/training/exams/${exam.id}`} className="block border border-slate-200 rounded-lg p-4 hover:border-[#0d2644] hover:bg-slate-50 transition-colors">
+                  <p className="text-[15px] font-bold text-slate-800">{exam.title}</p>
+                  <p className="text-[12px] text-slate-500 mt-1">
+                    {exam.questions.length} question(s) · {formatPoints(totalPoints(exam.questions))} pts · {exam.durationMinutes ? `${exam.durationMinutes} min` : "sans limite de temps"}
+                  </p>
+                  <p className="text-[12px] mt-1 font-bold text-[#0d2644]">{exam.attemptsUsed === 0 ? "À passer" : `${exam.attemptsUsed} / ${exam.maxAttempts} tentative(s)`}</p>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

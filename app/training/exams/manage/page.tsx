@@ -45,6 +45,11 @@ async function Content() {
             <h2 className="text-[15px] font-bold text-slate-800 flex-1">{exam.title}</h2>
             <span className={`text-[11px] font-bold rounded px-2 py-0.5 ${exam.published ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600"}`}>{exam.published ? "Publié" : "Brouillon"}</span>
           </div>
+          {(!exam.published || exam.questions.length === 0 || !exam.hasKey) && (
+            <p data-testid="exam-not-ready" className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+              Les candidats ne pourront pas le passer tant que : {[!exam.published && "il n'est pas publié", exam.questions.length === 0 && "il n'a aucune question", !exam.hasKey && "il n'a pas de clé d'accès"].filter(Boolean).join(", ")}. (Modification : Admin → Examens.)
+            </p>
+          )}
           <ExamAssign
             examId={exam.id}
             accessKey={keys.get(exam.id) ?? null}

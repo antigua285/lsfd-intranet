@@ -236,12 +236,12 @@ export async function listAssignments(): Promise<Map<string, Assignment[]>> {
   return map;
 }
 
-/** Examens publiés assignés à ce compte. */
+/** Examens assignés à ce compte (publiés ou non : la page indique ceux qui ne sont pas encore disponibles). */
 export async function listAssignedExams(userId: string): Promise<(ExamRecord & { attemptsUsed: number })[]> {
   return query<ExamRecord & { attemptsUsed: number }>(
     `SELECT ${EXAM_COLUMNS}, (SELECT count(*)::int FROM exam_attempts t WHERE t.exam_id = exams.id AND t.user_id = $1) AS "attemptsUsed"
        FROM exams
-      WHERE published AND id IN (SELECT exam_id FROM exam_assignments WHERE user_id = $1)
+      WHERE id IN (SELECT exam_id FROM exam_assignments WHERE user_id = $1)
       ORDER BY title`,
     [userId]
   );
