@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/auth";
 import {
+  DuplicateNameError,
   createFeature,
   createZone,
   deleteFeature,
@@ -89,8 +90,16 @@ export async function updateFeatureAction(
     if (!current) return { ok: false, error: NOT_FOUND };
     const details = parseDetails(current.kind, fields.details);
     if (!details.ok) return details;
-    const feature = await updateFeature(id, { name: name.value, details: details.value });
-    return feature ? { ok: true, feature } : { ok: false, error: NOT_FOUND };
+    if (current.kind === "hydrant" && (await listFeatures()).some((f) => f.kind === "hydrant" && f.id !== id && f.name.toLowerCase() === name.value.toLowerCase())) {
+      return { ok: false, error: "Ce nom est déjà utilisé par une autre borne incendie." };
+    }
+    try {
+      const feature = await updateFeature(id, { name: name.value, details: details.value });
+      return feature ? { ok: true, feature } : { ok: false, error: NOT_FOUND };
+    } catch (error) {
+      if (error instanceof DuplicateNameError) return { ok: false, error: error.message };
+      throw error;
+    }
   }) as Promise<FeatureResult>;
 }
 

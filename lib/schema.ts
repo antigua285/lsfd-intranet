@@ -223,4 +223,20 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at  timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS probation_comments_nb_idx ON probation_comments (notebook_id, created_at)`,
+  // Bornes incendie : ID automatique à 5 chiffres (colonne "code") et nom unique.
+  `ALTER TABLE map_features ADD COLUMN IF NOT EXISTS code text`,
+  // Avant de poser l'unicité, on renomme les doublons existants : « Nom », « Nom (2) », « Nom (3) »…
+  `UPDATE map_features f SET name = f.name || ' (' || d.rn || ')'
+     FROM (SELECT id, row_number() OVER (PARTITION BY lower(name) ORDER BY created_at, id) AS rn
+             FROM map_features WHERE kind = 'hydrant') d
+    WHERE f.id = d.id AND d.rn > 1`,
+  // Les bornes déjà placées reçoivent leur ID (une seule fois : seulement celles qui n'en ont pas encore).
+  `UPDATE map_features f SET code = lpad((d.rn + d.base)::text, 5, '0')
+     FROM (SELECT id,
+                  row_number() OVER (ORDER BY created_at, id) AS rn,
+                  (SELECT COALESCE(MAX(code::int), 0) FROM map_features WHERE kind = 'hydrant' AND code ~ '^[0-9]{1,5}$') AS base
+             FROM map_features WHERE kind = 'hydrant' AND code IS NULL) d
+    WHERE f.id = d.id`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS map_features_hydrant_code_uniq ON map_features (code) WHERE kind = 'hydrant'`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS map_features_hydrant_name_uniq ON map_features (lower(name)) WHERE kind = 'hydrant'`,
 ];

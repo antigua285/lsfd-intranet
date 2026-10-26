@@ -40,7 +40,7 @@ async function FillContent({ params }: { params: Promise<{ id: string }> }) {
   if (kinds.size > 0) {
     for (const feature of await listFeatures()) {
       if (!kinds.has(feature.kind)) continue;
-      const number = feature.details.number ? ` (${feature.details.number})` : "";
+      const number = feature.code ? ` (${feature.code})` : feature.details.number ? ` (${feature.details.number})` : "";
       (pointOptions[feature.kind] ??= []).push({ id: feature.id, label: `${feature.name}${number}` });
     }
     for (const list of Object.values(pointOptions)) list.sort((a, b) => a.label.localeCompare(b.label, "fr", { numeric: true }));

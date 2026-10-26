@@ -53,6 +53,7 @@ export function featureSignature(f: MapFeature, selected: boolean): string {
     f.details.status ?? "",
     f.details.hazard ?? "",
     f.details.number ?? "",
+    f.code ?? "",
     selected ? "1" : "0",
   ].join("|");
 }

@@ -18,6 +18,8 @@ export type MapFeature = {
   /** Position en fraction de l'image : 0 = haut, 1 = bas. */
   y: number;
   details: Record<string, string>;
+  /** ID automatique à 5 chiffres (bornes incendie uniquement). */
+  code: string | null;
   /** Dernier rapport (formulaire) lié à ce point, s'il y en a un. */
   lastReport?: { id: string; title: string; at: string } | null;
 };
@@ -83,7 +85,6 @@ export const DETAIL_FIELDS: Record<FeatureKind, DetailField[]> = {
     { key: "apparatus", label: "Engins / équipement", max: 200, multiline: true },
   ],
   hydrant: [
-    { key: "number", label: "N° de borne", max: 20 },
     {
       key: "type",
       label: "Type",
@@ -143,6 +144,7 @@ export function optionLabel(kind: FeatureKind, key: string, value: string): stri
 /** Lignes "Libellé : valeur" à afficher dans une fiche (champs renseignés uniquement). */
 export function detailLines(feature: MapFeature): { label: string; value: string }[] {
   const lines: { label: string; value: string }[] = [];
+  if (feature.kind === "hydrant" && feature.code) lines.push({ label: "ID", value: feature.code });
   for (const field of DETAIL_FIELDS[feature.kind]) {
     const raw = feature.details[field.key];
     if (!raw) continue;
@@ -153,6 +155,12 @@ export function detailLines(feature: MapFeature): { label: string; value: string
     lines.push({ label: field.label, value });
   }
   return lines;
+}
+
+/** Recherche par nom ou par ID (« 42 » trouve la borne 00042). `needle` est déjà en minuscules et sans espaces autour. */
+export function featureMatches(f: { name: string; code?: string | null }, needle: string): boolean {
+  if (!needle) return true;
+  return f.name.toLowerCase().includes(needle) || (f.code ?? "").includes(needle);
 }
 
 export function sortByName<T extends { name: string }>(items: T[]): T[] {

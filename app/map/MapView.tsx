@@ -31,6 +31,7 @@ import {
 import {
   FeatureForm,
   FiltersCard,
+  HydrantSearchCard,
   ToolsCard,
   WeatherCard,
   ZoneForm,
@@ -756,6 +757,7 @@ export function MapView({ initialFeatures, initialZones, editing, showReportLink
         )}
 
         <WeatherCard weather={weather} />
+        <HydrantSearchCard features={features} onFocusFeature={focusFeature} />
         <FiltersCard
           features={features}
           zones={zones}

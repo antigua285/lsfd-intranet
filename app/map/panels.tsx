@@ -8,6 +8,7 @@ import {
   ZONE_COLORS,
   ZONE_KINDS,
   ZONE_META,
+  featureMatches,
   sortByName,
   type FeatureKind,
   type MapFeature,
@@ -68,6 +69,53 @@ export function WeatherCard({ weather }: { weather: WeatherState }) {
   );
 }
 
+/* ------------------------------------------------- recherche d'une borne */
+
+/** Cherche une borne par nom ou par ID et recentre la carte dessus. */
+export function HydrantSearchCard({ features, onFocusFeature }: { features: MapFeature[]; onFocusFeature: (id: string) => void }) {
+  const [search, setSearch] = useState("");
+  const needle = search.trim().toLowerCase();
+  const matches = needle ? sortByName(features.filter((f) => f.kind === "hydrant" && featureMatches(f, needle))).slice(0, 8) : [];
+  const exact = matches.find((f) => f.code === needle.padStart(5, "0") || f.name.toLowerCase() === needle);
+  const go = (id: string) => {
+    onFocusFeature(id);
+  };
+  return (
+    <Card title="Trouver une borne incendie">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const target = exact ?? matches[0];
+          if (target) go(target.id);
+        }}
+      >
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Nom ou ID (ex. 00042)"
+          aria-label="Rechercher une borne incendie"
+          data-testid="hydrant-search"
+          className={INPUT}
+        />
+      </form>
+      {needle && (
+        <ul className="mt-2 flex flex-col gap-0.5" data-testid="hydrant-results">
+          {matches.length === 0 && <li className="text-slate-400 text-[12px]">Aucune borne trouvée.</li>}
+          {matches.map((f) => (
+            <li key={f.id}>
+              <button type="button" onClick={() => go(f.id)} data-testid="hydrant-result" className="w-full text-left rounded px-2 py-1 hover:bg-slate-100">
+                <span className="font-bold tabular-nums text-[#0d2644]">{f.code ?? "—"}</span> <span className="text-slate-700">· {f.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!needle && <p className="text-[11px] text-slate-400">Entrée ou clic : la carte zoome sur la borne.</p>}
+    </Card>
+  );
+}
+
 /* ---------------------------------------------------------------- filtres */
 
 export type HiddenSet = Set<string>;
@@ -109,7 +157,7 @@ export function FiltersCard({
     key: string;
     label: string;
     swatch: string;
-    items: { id: string; name: string; type: "feature" | "zone" }[];
+    items: { id: string; name: string; code?: string | null; type: "feature" | "zone" }[];
   };
 
   const groups: Group[] = [
@@ -130,6 +178,7 @@ export function FiltersCard({
       items: sortByName(features.filter((f) => f.kind === kind)).map((f) => ({
         id: f.id,
         name: f.name,
+        code: f.code,
         type: "feature" as const,
       })),
     })),
@@ -141,14 +190,14 @@ export function FiltersCard({
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Rechercher un nom…"
+        placeholder="Rechercher un nom ou un ID…"
         aria-label="Rechercher dans la carte"
         className={`${INPUT} mb-2`}
       />
       <ul className="flex flex-col gap-1">
         {groups.map((group) => {
           const items = needle
-            ? group.items.filter((i) => i.name.toLowerCase().includes(needle))
+            ? group.items.filter((i) => featureMatches(i, needle))
             : group.items;
           if (needle && items.length === 0) return null;
           const expanded = open.has(group.key) || needle.length > 0;
@@ -201,7 +250,7 @@ export function FiltersCard({
                           item.id === selectedId ? "font-bold text-[#0d2644]" : ""
                         } ${hidden.has(item.id) || hidden.has(group.key) ? "text-slate-400" : ""}`}
                       >
-                        {item.name}
+                        {item.code ? `${item.code} · ${item.name}` : item.name}
                       </button>
                     </li>
                   ))}
@@ -330,8 +379,14 @@ export function FeatureForm({
           onSave(name, details);
         }}
       >
+        {feature.kind === "hydrant" && (
+          <p className="text-[12px] text-slate-600" data-testid="hydrant-id">
+            ID : <b className="text-[14px] text-slate-800 tabular-nums">{feature.code ?? "—"}</b>
+            <span className="text-slate-400"> (automatique, non modifiable)</span>
+          </p>
+        )}
         <label className="flex flex-col gap-0.5">
-          <span className="text-[11px] text-slate-500">Nom</span>
+          <span className="text-[11px] text-slate-500">Nom{feature.kind === "hydrant" ? " (unique)" : ""}</span>
           <input
             className={INPUT}
             value={name}

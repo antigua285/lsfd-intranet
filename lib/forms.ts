@@ -221,7 +221,7 @@ export async function submitReport(input: {
     if (!feature || feature.kind !== field.featureKind) {
       return { ok: false, error: "Un point choisi n'existe plus.", fieldErrors: { [field.id]: "Ce point n'existe plus. Recharge la page." } };
     }
-    const number = feature.details.number ? ` (${feature.details.number})` : "";
+    const number = feature.code ? ` (${feature.code})` : feature.details.number ? ` (${feature.details.number})` : "";
     labels[field.id] = `${feature.name}${number}`;
     featureIds.set(feature.id, feature.name);
   }

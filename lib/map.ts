@@ -20,11 +20,11 @@ export function isMissingMapTableError(error: unknown): boolean {
   );
 }
 
-const FEATURE_COLUMNS = `id, kind, name, x, y, details`;
+const FEATURE_COLUMNS = `id, kind, name, x, y, details, code`;
 
 // Même liste + dernier rapport lié au point (NULL s'il n'y en a pas).
 const FEATURE_WITH_REPORT = `
-  SELECT f.id, f.kind, f.name, f.x, f.y, f.details,
+  SELECT f.id, f.kind, f.name, f.x, f.y, f.details, f.code,
          CASE WHEN r.submission_id IS NULL THEN NULL
               ELSE jsonb_build_object('id', r.submission_id, 'title', r.title, 'at', r.created_at)
          END AS "lastReport"
@@ -59,6 +59,7 @@ export async function createFeature(input: {
   y: number;
   details: Record<string, string>;
 }): Promise<MapFeature> {
+  if (input.kind === "hydrant") return createHydrant(input);
   let name = input.name;
   if (!name) {
     const [row] = await query<{ n: number }>(
@@ -76,17 +77,66 @@ export async function createFeature(input: {
   return created;
 }
 
+export class DuplicateNameError extends Error {
+  constructor() {
+    super("Ce nom est déjà utilisé par une autre borne incendie.");
+  }
+}
+
+function isUniqueViolation(error: unknown, index?: string): boolean {
+  const e = error as { code?: string; constraint?: string; message?: string } | null;
+  if (e?.code !== "23505" && !/duplicate key value/i.test(e?.message ?? "")) return false;
+  return !index || e?.constraint === index || (e?.message ?? "").includes(index);
+}
+
+/** Prochain ID libre à 5 chiffres (00001, 00002…). */
+async function nextHydrantCode(): Promise<string> {
+  const [row] = await query<{ next: number }>(
+    `SELECT COALESCE(MAX(code::int), 0) + 1 AS next FROM map_features WHERE kind = 'hydrant' AND code ~ '^[0-9]{1,5}$'`
+  );
+  const next = row?.next ?? 1;
+  if (next > 99999) throw new Error("Plus aucun ID à 5 chiffres n'est disponible.");
+  return String(next).padStart(5, "0");
+}
+
+/** Création d'une borne : ID automatique ; l'unicité est garantie par la base (on réessaie si deux créations se croisent). */
+async function createHydrant(input: { name?: string; x: number; y: number; details: Record<string, string> }): Promise<MapFeature> {
+  for (let attempt = 0; ; attempt++) {
+    const code = await nextHydrantCode();
+    try {
+      const [created] = await query<MapFeature>(
+        `INSERT INTO map_features (kind, name, x, y, details, code)
+         VALUES ('hydrant', $1, $2, $3, $4::jsonb, $5)
+         RETURNING ${FEATURE_COLUMNS}`,
+        [input.name ?? `Borne ${code}`, input.x, input.y, JSON.stringify(input.details), code]
+      );
+      return created;
+    } catch (error) {
+      if (attempt >= 4 || !isUniqueViolation(error)) {
+        if (isUniqueViolation(error, "map_features_hydrant_name_uniq") && input.name) throw new DuplicateNameError();
+        throw error;
+      }
+    }
+  }
+}
+
 export async function updateFeature(
   id: string,
   fields: { name: string; details: Record<string, string> }
 ): Promise<MapFeature | null> {
-  const rows = await query(
-    `UPDATE map_features
-        SET name = $2, details = $3::jsonb, updated_at = now()
-      WHERE id = $1
-      RETURNING id`,
-    [id, fields.name, JSON.stringify(fields.details)]
-  );
+  let rows: unknown[];
+  try {
+    rows = await query(
+      `UPDATE map_features
+          SET name = $2, details = $3::jsonb, updated_at = now()
+        WHERE id = $1
+        RETURNING id`,
+      [id, fields.name, JSON.stringify(fields.details)]
+    );
+  } catch (error) {
+    if (isUniqueViolation(error, "map_features_hydrant_name_uniq")) throw new DuplicateNameError();
+    throw error;
+  }
   return rows.length ? getFeature(id) : null;
 }
 
