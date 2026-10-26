@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { getAccessContext, isTrainer } from "@/lib/access";
+import { getAccessContext } from "@/lib/access";
 import { countAssignedPending } from "@/lib/exams";
 
 export const metadata = { title: "Formation | LSFD Intranet" };
@@ -24,19 +24,6 @@ async function PendingBadge() {
   return <span data-testid="pending-exams" className="ml-2 text-[11px] font-bold rounded-full bg-[#c00d0d] text-white px-2 py-0.5">{n} à passer</span>;
 }
 
-async function TdCard() {
-  const ctx = await getAccessContext();
-  if (!ctx || !isTrainer(ctx)) return null;
-  return (
-    <li className="sm:col-span-2">
-      <Link href="/training/td" data-testid="td-card" className="block border border-[#0d2644] bg-slate-50 rounded-lg p-4 hover:bg-slate-100 transition-colors">
-        <p className="text-[15px] font-bold text-[#0d2644]">Espace TD</p>
-        <p className="text-[13px] text-slate-500">Correction des examens, clés et assignation, carnets de probation, cartes de révision.</p>
-      </Link>
-    </li>
-  );
-}
-
 export default function TrainingPage() {
   return (
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
@@ -44,7 +31,6 @@ export default function TrainingPage() {
       <p className="text-sm text-slate-500 mb-6">Révisions, examens et suivi de probation.</p>
       <Suspense fallback={null}>
         <ul className="grid gap-3 sm:grid-cols-2">
-          <Suspense fallback={null}><TdCard /></Suspense>
           {SECTIONS.map((s) => (
             <li key={s.href}>
               <Link href={s.href} className="block border border-slate-200 rounded-lg p-4 hover:border-[#0d2644] hover:bg-slate-50 transition-colors">

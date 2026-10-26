@@ -196,4 +196,31 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at  timestamptz NOT NULL DEFAULT now(),
     UNIQUE (exam_id, user_id)
   )`,
+  // Probation : modèle unique (catégories + checklists), un carnet par pompier en probation.
+  `CREATE TABLE IF NOT EXISTS probation_template (
+    id         smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    categories jsonb NOT NULL DEFAULT '[]'::jsonb,
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  // checked = { "<id compétence>": { by, at } }. snapshot = modèle + cases figés à l'archivage.
+  `CREATE TABLE IF NOT EXISTS probation_notebooks (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     uuid REFERENCES users(id) ON DELETE SET NULL,
+    owner_name  text NOT NULL,
+    checked     jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    archived_at timestamptz,
+    archived_by text NOT NULL DEFAULT '',
+    snapshot    jsonb
+  )`,
+  `CREATE INDEX IF NOT EXISTS probation_notebooks_user_idx ON probation_notebooks (user_id)`,
+  `CREATE TABLE IF NOT EXISTS probation_comments (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    notebook_id uuid NOT NULL REFERENCES probation_notebooks(id) ON DELETE CASCADE,
+    author_id   uuid REFERENCES users(id) ON DELETE SET NULL,
+    author_name text NOT NULL,
+    body        text NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS probation_comments_nb_idx ON probation_comments (notebook_id, created_at)`,
 ];
