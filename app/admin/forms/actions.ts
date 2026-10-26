@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unknownFlags } from "@/lib/access";
 import { assertAdmin } from "@/lib/auth";
 import { createForm, deleteForm, isMissingFormsTableError, updateForm } from "@/lib/forms";
 import { TEMPLATES } from "@/lib/forms-templates";
@@ -22,6 +23,8 @@ export async function saveFormAction(id: string | null, raw: unknown): Promise<S
   const parsed = parseFormInput(raw);
   if (!parsed.ok) return parsed;
   try {
+    const unknown = await unknownFlags(parsed.value.flags);
+    if (unknown.length) return { ok: false, error: `Flag inconnu : ${unknown.join(", ")}.` };
     if (id === null) {
       const created = await createForm(parsed.value);
       refresh();

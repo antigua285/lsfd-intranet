@@ -1,9 +1,19 @@
 import Link from "next/link";
 
 // Liste des modules inspirée du document de référence
-import { APP_MODULES } from "@/config/navigation";
+import { Suspense } from "react";
+import { getVisibleModules } from "@/lib/access";
 
 export default function Home() {
+  return (
+    <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
+  const modules = await getVisibleModules();
   return (
     <main className="max-w-6xl mx-auto flex flex-col font-['Calibri','Arial',sans-serif]">
       
@@ -17,9 +27,9 @@ export default function Home() {
       {/* Grille des modules (4 colonnes, 2 lignes) */}
 {/* ... le reste du code de ta grille ... */}
 <div className="grid grid-cols-4 gap-1">
-  {APP_MODULES.map((mod) => (
+  {modules.map((mod) => (
     <Link 
-      key={mod.id} 
+      key={`${mod.id}-${mod.title}`} 
       href={mod.link}
       className="group relative h-40 bg-slate-800 overflow-hidden flex flex-col items-center justify-center p-4 text-center border border-white hover:border-[#c00d0d] transition-colors"
     >

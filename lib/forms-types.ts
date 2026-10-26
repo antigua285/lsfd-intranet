@@ -61,6 +61,8 @@ export type FormContent = {
 export type FormRecord = FormContent & {
   id: string;
   published: boolean;
+  /** Flags d'accès (au moins un requis). Vide = tous les membres. */
+  flags: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -84,6 +86,8 @@ export type SubmissionSummary = {
 
 export type Submission = SubmissionSummary & {
   submittedBy: string | null;
+  /** Flags dont les détenteurs peuvent lire ce rapport. */
+  formFlags: string[];
   snapshot: FormContent;
   answers: Record<string, string>;
   /** Texte à afficher pour les réponses qui ne sont pas du texte brut (ex. point de la carte). */

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { getAccessContext } from "@/lib/access";
 import { getSubmission, isMissingFormsTableError } from "@/lib/forms";
 import type { Submission } from "@/lib/forms-types";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -21,7 +21,9 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 }
 
 async function ReportContent({ params }: { params: Promise<{ id: string }> }) {
-  const me = await requireUser();
+  const ctx = await getAccessContext();
+  if (!ctx) redirect("/login");
+  const me = ctx.user;
   const { id } = await params;
   if (!UUID_PATTERN.test(id)) notFound();
 
@@ -31,14 +33,15 @@ async function ReportContent({ params }: { params: Promise<{ id: string }> }) {
   } catch (error) {
     if (!isMissingFormsTableError(error)) throw error;
   }
-  // Un rapport n'est visible que par son auteur et les modérateurs.
-  if (!submission || (!me.isAdmin && submission.submittedBy !== me.id)) notFound();
+  // Visible par : les modérateurs, son auteur, et les détenteurs d'un flag du formulaire.
+  const isHolder = !!submission && submission.formFlags.some((flag) => ctx.flags.includes(flag));
+  if (!submission || (!me.isAdmin && submission.submittedBy !== me.id && !isHolder)) notFound();
 
   const sentAt = new Date(submission.createdAt).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
   return (
     <>
       <Link href={me.isAdmin ? "/admin/reports" : "/forms"} className="text-[12px] text-slate-500 hover:underline">
-        ← {me.isAdmin ? "Rapports reçus" : "Mes formulaires"}
+        ← {me.isAdmin ? "Rapports reçus" : "Rapports & formulaires"}
       </Link>
       <div className="mt-2 mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>

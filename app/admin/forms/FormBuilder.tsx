@@ -8,18 +8,23 @@ import { LIMITS } from "@/lib/forms-validation";
 import { DETAIL_FIELDS, FEATURE_KINDS, FEATURE_META, type FeatureKind } from "@/lib/map-types";
 import { saveFormAction } from "./actions";
 
-type Props = { formId: string | null; initial: Omit<FormRecord, "id" | "createdAt" | "updatedAt"> };
+type Props = {
+  formId: string | null;
+  initial: Omit<FormRecord, "id" | "createdAt" | "updatedAt">;
+  allFlags: { code: string; name: string }[];
+};
 
 const INPUT = "w-full border border-slate-300 rounded px-2 py-1.5 text-[13px] focus:outline-none focus:border-[#0d2644]";
 const SMALL_BTN = "border border-slate-300 text-slate-700 text-[12px] rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-30";
 
-export function FormBuilder({ formId, initial }: Props) {
+export function FormBuilder({ formId, initial, allFlags }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(initial.title);
   const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [headerLines, setHeaderLines] = useState<string[]>(initial.headerLines);
   const [footer, setFooter] = useState(initial.footer);
   const [published, setPublished] = useState(initial.published);
+  const [flags, setFlags] = useState<string[]>(initial.flags);
   const [fields, setFields] = useState<FormField[]>(initial.definition.fields);
   const [actions, setActions] = useState<FormAction[]>(initial.definition.actions);
   const [busy, setBusy] = useState(false);
@@ -74,7 +79,7 @@ export function FormBuilder({ formId, initial }: Props) {
     setMessage(null);
     try {
       const result = await saveFormAction(formId, {
-        title, subtitle, headerLines: headerLines.filter((l) => l.trim()), footer, published,
+        title, subtitle, headerLines: headerLines.filter((l) => l.trim()), footer, published, flags,
         definition: { fields, actions },
       });
       if (!result.ok) return setMessage({ ok: false, text: result.error });
@@ -119,8 +124,28 @@ export function FormBuilder({ formId, initial }: Props) {
           </label>
           <label className="text-[13px] flex items-center gap-2">
             <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-            Publié (visible et remplissable par tous les membres)
+            Publié (visible et remplissable par les membres autorisés)
           </label>
+          <fieldset className="text-[13px] border border-slate-200 rounded p-3">
+            <legend className="px-1 text-[12px] font-bold uppercase tracking-wide text-slate-600">Accès par flags</legend>
+            <p className="text-[12px] text-slate-500 mb-2">
+              Aucun flag coché : tous les membres peuvent remplir ce formulaire. Sinon, il faut posséder au moins un des flags cochés.
+              Les détenteurs de ces flags peuvent aussi lire les rapports reçus.
+            </p>
+            {allFlags.length === 0 ? (
+              <p className="text-[12px] text-slate-500">Aucun flag n&apos;existe encore (Administration → Accès &amp; flags).</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {allFlags.map((f) => (
+                  <label key={f.code} className="flex items-center gap-1.5" title={f.name}>
+                    <input type="checkbox" checked={flags.includes(f.code)}
+                      onChange={(e) => setFlags((p) => (e.target.checked ? [...p, f.code] : p.filter((c) => c !== f.code)))} />
+                    {f.code}
+                  </label>
+                ))}
+              </div>
+            )}
+          </fieldset>
         </section>
 
         <section className="border border-slate-200 rounded p-4 flex flex-col gap-3">

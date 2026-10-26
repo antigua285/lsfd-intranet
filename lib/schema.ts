@@ -109,4 +109,27 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at    timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (feature_id, submission_id)
   )`,
+  // Flags d'accès : un flag = une permission (ex. ACTS). Les comptes en reçoivent,
+  // les catégories du site et les formulaires en exigent (au moins un).
+  `CREATE TABLE IF NOT EXISTS flags (
+    code        text PRIMARY KEY,
+    name        text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    created_at  timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS user_flags (
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    flag    text NOT NULL REFERENCES flags(code) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, flag)
+  )`,
+  // Réglages des catégories du dashboard (le contenu des catégories reste dans le code).
+  // flags vide = catégorie ouverte à tous ; position NULL = ordre du code.
+  `CREATE TABLE IF NOT EXISTS module_access (
+    module_key text PRIMARY KEY,
+    flags      text[] NOT NULL DEFAULT '{}',
+    position   integer
+  )`,
+  `ALTER TABLE forms ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,
+  // Copie des flags du formulaire sur chaque rapport (reste valable si le formulaire est supprimé).
+  `ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS form_flags text[] NOT NULL DEFAULT '{}'`,
 ];

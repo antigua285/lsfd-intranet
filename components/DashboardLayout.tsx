@@ -10,9 +10,11 @@ interface DashboardLayoutProps {
   children: ReactNode;
   /** Bloc profil affiché à droite du header (rendu côté serveur). */
   userSlot: ReactNode;
+  /** Liens du menu latéral (rendus côté serveur, filtrés par flags). */
+  navSlot: ReactNode;
 }
 
-export function DashboardLayout({ children, userSlot }: DashboardLayoutProps) {
+export function DashboardLayout({ children, userSlot, navSlot }: DashboardLayoutProps) {
   const pathname = usePathname();
   // On vérifie si on est sur la racine (le hub principal)
   const isHomePage = pathname === "/";
@@ -32,7 +34,7 @@ export function DashboardLayout({ children, userSlot }: DashboardLayoutProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* La sidebar n'est rendue que si on N'EST PAS sur la page d'accueil */}
-      {!isHomePage && <Sidebar isOpen={isSidebarOpen} />}
+      {!isHomePage && <Sidebar isOpen={isSidebarOpen} linksSlot={navSlot} />}
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header

@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import { Avatar } from "@/components/Avatar";
 import { WidgetWrapper } from "@/components/WidgetWrapper";
+import { isMissingAccessTableError, listAllUserFlags, listFlags, type Flag } from "@/lib/access";
 import { requireAdmin } from "@/lib/auth";
 import { listUsers } from "@/lib/users";
 import { AdminNav } from "@/components/AdminNav";
 import { CreateUserForm } from "./CreateUserForm";
 import { UserActions } from "./UserActions";
+import { UserFlagsEditor } from "./UserFlagsEditor";
 
 export const metadata = { title: "Administration | LSFD Intranet" };
 
@@ -27,6 +29,14 @@ export default function AdminPage() {
 async function AdminContent() {
   const me = await requireAdmin();
   const users = await listUsers();
+  let allFlags: Flag[] = [];
+  let userFlags = new Map<string, string[]>();
+  try {
+    [allFlags, userFlags] = await Promise.all([listFlags(), listAllUserFlags()]);
+  } catch (error) {
+    if (!isMissingAccessTableError(error)) throw error;
+  }
+  const flagChoices = allFlags.map((f) => ({ code: f.code, name: f.name }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,6 +67,7 @@ async function AdminContent() {
                       {user.grade} | {user.station}
                     </p>
                   </div>
+                  <span className="text-[11px] font-mono text-slate-500 hidden md:block">{(userFlags.get(user.id) ?? []).join(" ")}</span>
                   <span className="text-[12px] text-slate-500 hidden sm:block">{user.username}</span>
                   <span
                     className={`text-[11px] font-bold rounded px-2 py-0.5 ${
@@ -67,6 +78,9 @@ async function AdminContent() {
                   </span>
                   <span className="text-[12px] text-slate-400 group-open:rotate-180 transition-transform">▾</span>
                 </summary>
+                <div className="px-2">
+                  <UserFlagsEditor userId={user.id} current={userFlags.get(user.id) ?? []} allFlags={flagChoices} />
+                </div>
                 <UserActions
                   userId={user.id}
                   profile={{

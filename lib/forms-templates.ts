@@ -12,6 +12,7 @@ export const TEMPLATES: Record<"test" | "hydrant", { label: string; description:
       headerLines: [],
       footer: "This form is for testing purposes only.",
       published: true,
+      flags: [],
       definition: {
         fields: [
           { id: "f_head01", type: "heading", label: "TEST INFORMATION" },
@@ -38,6 +39,7 @@ export const TEMPLATES: Record<"test" | "hydrant", { label: string; description:
       headerLines: [],
       footer: "*Hydrant condition entered by the inspector is subject to verification.",
       published: true,
+      flags: [],
       definition: {
         fields: [
           { id: "f_head01", type: "heading", label: "HYDRANT INFORMATION" },

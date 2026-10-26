@@ -9,6 +9,7 @@ import {
   type FormField,
   type SelectOption,
 } from "./forms-types";
+import { parseFlagCodes } from "./access-rules";
 import { UUID_PATTERN, type Result } from "./validation";
 
 const ID_PATTERN = /^[a-z][a-z0-9_]{2,31}$/;
@@ -36,6 +37,7 @@ export type FormInput = {
   headerLines: string[];
   footer: string;
   published: boolean;
+  flags: string[];
   definition: FormDefinition;
 };
 
@@ -52,6 +54,8 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
   if (!raw || typeof raw !== "object") return fail("Formulaire invalide.");
   const input = raw as Record<string, unknown>;
 
+  const flags = parseFlagCodes(input.flags);
+  if (!flags.ok) return flags;
   const title = text(input.title, "Le titre", LIMITS.title, true);
   if (!title.ok) return title;
   const subtitle = text(input.subtitle, "Le sous-titre", LIMITS.subtitle, false);
@@ -167,6 +171,7 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
       headerLines,
       footer: footer.value,
       published: input.published === true,
+      flags: flags.value,
       definition: { fields, actions },
     },
   };

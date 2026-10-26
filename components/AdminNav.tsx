@@ -4,6 +4,7 @@ const TABS = [
   { href: "/admin", label: "Comptes" },
   { href: "/admin/forms", label: "Formulaires" },
   { href: "/admin/reports", label: "Rapports reçus" },
+  { href: "/admin/access", label: "Accès & flags" },
 ];
 
 /** Petit menu commun aux pages de modération. */

@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { isMissingFormsTableError, listForms, listSubmissionsBy } from "@/lib/forms";
+import { redirect } from "next/navigation";
+import { canSee, getAccessContext } from "@/lib/access";
+import { isMissingFormsTableError, listForms, listSubmissionsBy, listSubmissionsForFlags } from "@/lib/forms";
 import type { FormRecord, SubmissionSummary } from "@/lib/forms-types";
 
 export const metadata = { title: "Rapports | LSFD Intranet" };
@@ -17,13 +18,22 @@ export default function FormsPage() {
 }
 
 async function FormsContent() {
-  const me = await requireUser();
+  const ctx = await getAccessContext();
+  if (!ctx) redirect("/login");
+  const me = ctx.user;
 
   let forms: FormRecord[] = [];
   let mine: SubmissionSummary[] = [];
+  let section: SubmissionSummary[] = [];
   let missing = false;
   try {
-    [forms, mine] = await Promise.all([listForms({ onlyPublished: true }), listSubmissionsBy(me.id)]);
+    [forms, mine, section] = await Promise.all([
+      listForms({ onlyPublished: true }),
+      listSubmissionsBy(me.id),
+      // Les modérateurs ont leur boîte de réception complète.
+      me.isAdmin ? Promise.resolve([]) : listSubmissionsForFlags(ctx.flags),
+    ]);
+    forms = forms.filter((f) => canSee(ctx, f.flags));
   } catch (error) {
     if (!isMissingFormsTableError(error)) throw error;
     missing = true;
@@ -88,6 +98,23 @@ async function FormsContent() {
               </ul>
             )}
           </section>
+          {section.length > 0 && (
+            <section className="md:col-span-2">
+              <h2 className="text-[12px] font-bold uppercase tracking-wide text-slate-600 mb-2">Rapports reçus par mes sections</h2>
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {section.map((s) => (
+                  <li key={s.id}>
+                    <Link href={`/reports/${s.id}`} className="block border border-slate-200 rounded px-3 py-2 hover:bg-slate-50">
+                      <p className="text-[13px] font-bold text-slate-800 truncate">{s.formTitle}</p>
+                      <p className="text-[12px] text-slate-500">
+                        {s.submitterName} · {new Date(s.createdAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       )}
     </>

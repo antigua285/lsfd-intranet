@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { canSee, getAccessContext } from "@/lib/access";
 import { getForm, isMissingFormsTableError } from "@/lib/forms";
 import { listFeatures } from "@/lib/map";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -20,7 +20,8 @@ export default function FillFormPage({ params }: { params: Promise<{ id: string 
 }
 
 async function FillContent({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const ctx = await getAccessContext();
+  if (!ctx) redirect("/login");
   const { id } = await params;
   if (!UUID_PATTERN.test(id)) notFound();
 
@@ -31,7 +32,7 @@ async function FillContent({ params }: { params: Promise<{ id: string }> }) {
     if (isMissingFormsTableError(error)) notFound();
     throw error;
   }
-  if (!form || !form.published) notFound();
+  if (!form || !form.published || !canSee(ctx, form.flags)) notFound();
 
   // Points de la carte dont le formulaire a besoin (ex. les bornes), triés par nom.
   const kinds = new Set(form.definition.fields.filter((f) => f.type === "feature").map((f) => f.featureKind));

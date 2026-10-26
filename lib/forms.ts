@@ -17,6 +17,7 @@ export function isMissingFormsTableError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
   return (
     e?.code === "42P01" ||
+    e?.code === "42703" ||
     /relation "?(forms|form_submissions|map_feature_reports)"? does not exist/i.test(e?.message ?? "")
   );
 }
@@ -29,11 +30,12 @@ type FormRow = {
   footer: string;
   definition: FormRecord["definition"];
   published: boolean;
+  flags: string[];
   createdAt: string;
   updatedAt: string;
 };
 
-const FORM_COLUMNS = `id, title, subtitle, header_lines AS "headerLines", footer, definition, published,
+const FORM_COLUMNS = `id, title, subtitle, header_lines AS "headerLines", footer, definition, published, flags,
   created_at AS "createdAt", updated_at AS "updatedAt"`;
 
 export async function listForms(opts: { onlyPublished?: boolean } = {}): Promise<FormRecord[]> {
@@ -49,10 +51,10 @@ export async function getForm(id: string): Promise<FormRecord | null> {
 
 export async function createForm(input: FormInput): Promise<string> {
   const [row] = await query<{ id: string }>(
-    `INSERT INTO forms (title, subtitle, header_lines, footer, definition, published)
-     VALUES ($1, $2, $3::jsonb, $4, $5::jsonb, $6)
+    `INSERT INTO forms (title, subtitle, header_lines, footer, definition, published, flags)
+     VALUES ($1, $2, $3::jsonb, $4, $5::jsonb, $6, $7::text[])
      RETURNING id`,
-    [input.title, input.subtitle, JSON.stringify(input.headerLines), input.footer, JSON.stringify(input.definition), input.published]
+    [input.title, input.subtitle, JSON.stringify(input.headerLines), input.footer, JSON.stringify(input.definition), input.published, input.flags]
   );
   return row.id;
 }
@@ -61,12 +63,15 @@ export async function updateForm(id: string, input: FormInput): Promise<boolean>
   const rows = await query(
     `UPDATE forms
         SET title = $2, subtitle = $3, header_lines = $4::jsonb, footer = $5,
-            definition = $6::jsonb, published = $7, updated_at = now()
+            definition = $6::jsonb, published = $7, flags = $8::text[], updated_at = now()
       WHERE id = $1
       RETURNING id`,
-    [id, input.title, input.subtitle, JSON.stringify(input.headerLines), input.footer, JSON.stringify(input.definition), input.published]
+    [id, input.title, input.subtitle, JSON.stringify(input.headerLines), input.footer, JSON.stringify(input.definition), input.published, input.flags]
   );
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+  // Les rapports déjà reçus suivent les flags actuels du formulaire.
+  await query(`UPDATE form_submissions SET form_flags = $2::text[] WHERE form_id = $1`, [id, input.flags]);
+  return true;
 }
 
 /** Supprime le formulaire ; les rapports déjà reçus restent (ils contiennent leur propre copie). */
@@ -123,6 +128,17 @@ export async function listSubmissions(filter: SubmissionFilter = {}): Promise<Su
   );
 }
 
+/** Rapports lisibles par un détenteur de flags : ceux dont le formulaire exige l'un de ses flags. */
+export async function listSubmissionsForFlags(flags: string[], limit = 100): Promise<SubmissionSummary[]> {
+  if (flags.length === 0) return [];
+  return query<SubmissionSummary>(
+    `SELECT ${SUMMARY_COLUMNS} FROM form_submissions s
+      WHERE s.form_flags && $1::text[]
+      ORDER BY s.created_at DESC LIMIT $2`,
+    [flags, limit]
+  );
+}
+
 export async function listSubmissionsBy(userId: string, limit = 10): Promise<SubmissionSummary[]> {
   return query<SubmissionSummary>(
     `SELECT ${SUMMARY_COLUMNS} FROM form_submissions s WHERE s.submitted_by = $1 ORDER BY s.created_at DESC LIMIT $2`,
@@ -143,10 +159,11 @@ export async function getSubmission(id: string): Promise<Submission | null> {
       answers: Record<string, string>;
       labels: Record<string, string>;
       effects: EffectLogEntry[];
+      formFlags: string[];
     }
   >(
     `SELECT ${SUMMARY_COLUMNS}, s.submitted_by AS "submittedBy", s.form_snapshot AS snapshot,
-            s.answers, s.labels, s.effects
+            s.answers, s.labels, s.effects, s.form_flags AS "formFlags"
        FROM form_submissions s WHERE s.id = $1`,
     [id]
   );
@@ -189,6 +206,8 @@ export async function submitReport(input: {
   content: FormContent;
   answers: Record<string, string>;
   submitter: { id: string; name: string };
+  /** Flags du formulaire au moment de l'envoi. */
+  flags: string[];
   todayIso: string;
 }): Promise<SubmitResult> {
   const { content, answers } = input;
@@ -209,8 +228,8 @@ export async function submitReport(input: {
 
   const [row] = await query<{ id: string }>(
     `INSERT INTO form_submissions
-       (form_id, form_title, form_snapshot, answers, labels, summary, submitted_by, submitter_name)
-     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8)
+       (form_id, form_title, form_snapshot, answers, labels, summary, submitted_by, submitter_name, form_flags)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8, $9::text[])
      RETURNING id`,
     [
       input.formId,
@@ -221,6 +240,7 @@ export async function submitReport(input: {
       buildSummary(content, answers, labels),
       input.submitter.id,
       input.submitter.name,
+      input.flags,
     ]
   );
   const submissionId = row.id;

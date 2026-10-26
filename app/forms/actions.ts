@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { assertUser } from "@/lib/auth";
+import { canSee, getAccessContext } from "@/lib/access";
 import { getForm, isMissingFormsTableError, submitReport } from "@/lib/forms";
 import { parseAnswers } from "@/lib/forms-validation";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -16,12 +16,14 @@ function todayInLosAngeles(): string {
 }
 
 export async function submitFormAction(formId: string, rawAnswers: unknown): Promise<SubmitFormResult> {
-  const me = await assertUser();
+  const ctx = await getAccessContext();
+  if (!ctx) throw new Error("Session expirée, reconnecte-toi.");
+  const me = ctx.user;
   if (typeof formId !== "string" || !UUID_PATTERN.test(formId)) return { ok: false, error: "Formulaire invalide." };
 
   try {
     const form = await getForm(formId);
-    if (!form || !form.published) return { ok: false, error: "Ce formulaire n'est plus disponible." };
+    if (!form || !form.published || !canSee(ctx, form.flags)) return { ok: false, error: "Ce formulaire n'est plus disponible." };
 
     // Le formulaire est relu en base : le navigateur ne peut pas imposer sa propre structure.
     const { answers, errors } = parseAnswers(form.definition, rawAnswers);
@@ -40,6 +42,7 @@ export async function submitFormAction(formId: string, rawAnswers: unknown): Pro
       },
       answers,
       submitter: { id: me.id, name: `${me.firstName} ${me.lastName}` },
+      flags: form.flags,
       todayIso: todayInLosAngeles(),
     });
     if (result.ok) {

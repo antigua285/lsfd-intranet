@@ -5,6 +5,7 @@ import "./globals.css";
 import { OfficialBanner } from "@/components/OfficialBanner";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { HeaderUser, HeaderUserSkeleton } from "@/components/HeaderUser";
+import { SidebarLinks, SidebarLinksSkeleton } from "@/components/SidebarLinks";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,11 @@ export default function RootLayout({
         {/* Sur les pages à adresse dynamique (/reports/[id]…) l'URL n'est connue qu'à la requête : le menu est diffusé après coup. */}
         <Suspense fallback={null}>
         <DashboardLayout
+          navSlot={
+            <Suspense fallback={<SidebarLinksSkeleton />}>
+              <SidebarLinks />
+            </Suspense>
+          }
           userSlot={
             // La session se lit à chaque requête : elle doit être derrière un Suspense
             <Suspense fallback={<HeaderUserSkeleton />}>
