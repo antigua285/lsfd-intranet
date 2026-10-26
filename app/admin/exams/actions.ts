@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unknownFlags } from "@/lib/access";
 import { assertAdmin } from "@/lib/auth";
 import { createExam, deleteExam, isMissingExamsTableError, getExam, updateExam } from "@/lib/exams";
 import { parseExamInput } from "@/lib/exams-validation";
@@ -22,6 +23,8 @@ export async function saveExamAction(id: string | null, raw: unknown): Promise<S
   if (!parsed.ok) return parsed;
   const input = parsed.value;
   try {
+    const unknown = await unknownFlags(input.manageFlags);
+    if (unknown.length) return { ok: false, error: `Flag inconnu : ${unknown.join(", ")}.` };
     let existing = null;
     if (id !== null) {
       if (typeof id !== "string" || !UUID_PATTERN.test(id)) return { ok: false, error: "Examen invalide." };

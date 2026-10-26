@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
+import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
 import { isMissingExamsTableError, listAssignments, listExamKeys, listExams, type Assignment } from "@/lib/exams";
 import { STATUS_LABEL, type ExamRecord } from "@/lib/exams-types";
 import { listUsers } from "@/lib/users";
@@ -37,8 +37,9 @@ async function Content() {
     if (!isMissingExamsTableError(error)) throw error;
     return <p className="text-[13px] text-slate-600">Lance <code className="bg-slate-100 px-1 rounded">npm run db:setup</code> depuis ton PC, puis recharge.</p>;
   }
+  exams = exams.filter((e) => canManageWith(ctx, e.manageFlags));
   const users = (await listUsers()).map((u) => ({ id: u.id, label: `${u.firstName} ${u.lastName} — ${u.grade}` }));
-  if (exams.length === 0) return <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen n&apos;a été créé.</p>;
+  if (exams.length === 0) return <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen à gérer pour toi (ou aucun n&apos;a été créé).</p>;
   return (
     <ul className="flex flex-col gap-5">
       {exams.map((exam) => (

@@ -3,7 +3,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
 import { ExamQuestionHead } from "@/components/ExamQuestionHead";
 import { getAccessContext, isTrainer } from "@/lib/access";
-import { closeExpiredAttempts, getAttempt, isMissingExamsTableError } from "@/lib/exams";
+import { closeExpiredAttempts, getAttempt, isMissingExamsTableError, canManageExamId } from "@/lib/exams";
 import { VERDICT_LABEL, answerLines, formatPoints, totalPoints, type Attempt } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
 
@@ -36,7 +36,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   const mine = attempt.userId === ctx.user.id;
   if (!mine) {
     // Les formateurs relisent depuis le panneau de correction.
-    if (isTrainer(ctx)) redirect(`/training/exams/review/${attempt.id}`);
+    if (isTrainer(ctx) && (await canManageExamId(ctx, attempt.examId))) redirect(`/training/exams/review/${attempt.id}`);
     notFound();
   }
   if (attempt.status === "in_progress") redirect(`/training/exams/take/${attempt.id}`);

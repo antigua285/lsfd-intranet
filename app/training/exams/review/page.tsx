@@ -3,8 +3,8 @@ import Link from "next/link";
 import { TrailFromParams } from "@/components/TrailFromParams";
 import { parseFrom, withFrom } from "@/lib/nav";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
-import { closeExpiredAttempts, isMissingExamsTableError, listAttempts } from "@/lib/exams";
+import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
+import { closeExpiredAttempts, isMissingExamsTableError, listAttempts, listExamManageFlags } from "@/lib/exams";
 import { STATUS_LABEL, VERDICT_LABEL, type AttemptStatus, type AttemptSummary } from "@/lib/exams-types";
 
 export const metadata = { title: "Correction des examens | LSFD Intranet" };
@@ -38,7 +38,9 @@ async function Content({ searchParams }: { searchParams: SP }) {
   let rows: AttemptSummary[] = [];
   try {
     await closeExpiredAttempts();
-    rows = await listAttempts({ status, search: search || undefined });
+    const [all, flagsByExam] = await Promise.all([listAttempts({ status, search: search || undefined }), listExamManageFlags()]);
+    // Les copies d'un examen réservé à d'autres flags restent invisibles pour ce formateur.
+    rows = all.filter((r) => canManageWith(ctx, r.examId ? flagsByExam.get(r.examId) ?? [] : []));
   } catch (error) {
     if (!isMissingExamsTableError(error)) throw error;
   }

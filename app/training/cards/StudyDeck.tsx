@@ -6,8 +6,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Flashcard } from "@/lib/flashcards";
+import type { Flashcard } from "@/lib/flashcards-types";
 import { CardEditor } from "./CardEditor";
+import { mergeSaved } from "./manage/CardManager";
 
 type Dir = "left" | "right";
 const SWAP_MS = 180;
@@ -29,7 +30,7 @@ function newQueue(ids: string[], avoidFirst?: string): string[] {
   return q;
 }
 
-export function StudyDeck({ initialCards, canEdit }: { initialCards: Flashcard[]; canEdit: boolean }) {
+export function StudyDeck({ initialCards, canEdit, allFlags = [] }: { initialCards: Flashcard[]; canEdit: boolean; allFlags?: { code: string; name: string }[] }) {
   const [cards, setCards] = useState(initialCards);
   const [topic, setTopic] = useState("");
   const [queue, setQueue] = useState<string[] | null>(null); // null tant que le mélange n'est pas fait (évite un écart serveur/navigateur)
@@ -227,18 +228,18 @@ export function StudyDeck({ initialCards, canEdit }: { initialCards: Flashcard[]
       {canEdit && (
         <div className="mt-6 max-w-[520px] mx-auto flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3 text-[12px]">
-            {card && <button type="button" onClick={() => setPanel(panel === "edit" ? null : "edit")} className="font-bold text-[#0d2644] hover:underline">Modifier cette carte</button>}
+            {card && card.editable && <button type="button" onClick={() => setPanel(panel === "edit" ? null : "edit")} className="font-bold text-[#0d2644] hover:underline">Modifier cette carte</button>}
             <button type="button" onClick={() => setPanel(panel === "new" ? null : "new")} className="font-bold text-[#0d2644] hover:underline">+ Nouvelle carte</button>
             <Link href="/training/cards/manage" className="text-slate-600 hover:underline">Gérer toutes les cartes</Link>
           </div>
-          {panel === "edit" && card && (
-            <CardEditor key={card.id} card={card} topics={topics}
-              onSaved={(c) => setCards((all) => all.map((x) => (x.id === c.id ? c : x)))}
+          {panel === "edit" && card && card.editable && (
+            <CardEditor key={card.id} card={card} topics={topics} allFlags={allFlags}
+              onSaved={(c, affected) => setCards((all) => mergeSaved(all, c, affected))}
               onDeleted={(id) => { setCards((all) => all.filter((x) => x.id !== id)); setPanel(null); setFlipped(false); }}
               onCancel={() => setPanel(null)} />
           )}
           {panel === "new" && (
-            <CardEditor card={null} topics={topics} onSaved={(c) => setCards((all) => [...all, c])} onCancel={() => setPanel(null)} />
+            <CardEditor card={null} topics={topics} allFlags={allFlags} onSaved={(c, affected) => setCards((all) => [...mergeSaved(all, c, affected), c])} onCancel={() => setPanel(null)} />
           )}
         </div>
       )}

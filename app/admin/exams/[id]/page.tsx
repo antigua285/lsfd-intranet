@@ -3,6 +3,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound } from "next/navigation";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
+import { isMissingAccessTableError, listFlags, type Flag } from "@/lib/access";
 import { getExam, getExamKey, isMissingExamsTableError } from "@/lib/exams";
 import type { ExamRecord } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -39,10 +40,16 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     }
     if (!exam) notFound();
   }
-  const initial = exam ?? { title: "Nouvel examen", description: "", durationMinutes: null, thresholdPercent: null, maxAttempts: 1, published: false, hasKey: false, currentKey: null, questions: [] };
+  let allFlags: Flag[] = [];
+  try {
+    allFlags = await listFlags();
+  } catch (error) {
+    if (!isMissingAccessTableError(error)) throw error;
+  }
+  const initial = exam ?? { title: "Nouvel examen", description: "", durationMinutes: null, thresholdPercent: null, maxAttempts: 1, published: false, hasKey: false, manageFlags: [], currentKey: null, questions: [] };
   return (
     <div className="mt-3">
-      <ExamBuilder key={exam?.id ?? "new"} examId={exam?.id ?? null} initial={{ ...initial, currentKey }} />
+      <ExamBuilder key={exam?.id ?? "new"} examId={exam?.id ?? null} initial={{ ...initial, currentKey }} allFlags={allFlags.map((f) => ({ code: f.code, name: f.name }))} />
     </div>
   );
 }

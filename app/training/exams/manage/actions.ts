@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertTrainer } from "@/lib/access";
-import { assignExam, getExam, isMissingExamsTableError, unassignExam } from "@/lib/exams";
+import { assignExam, canManageExamId, getExam, isMissingExamsTableError, unassignExam } from "@/lib/exams";
 import { getUserById } from "@/lib/users";
 import { UUID_PATTERN } from "@/lib/validation";
 
@@ -14,9 +14,10 @@ function refresh() {
   revalidatePath("/training");
 }
 
-async function check(examId: string, userId: string): Promise<string | null> {
+async function check(ctx: Awaited<ReturnType<typeof assertTrainer>>, examId: string, userId: string): Promise<string | null> {
   if (typeof examId !== "string" || !UUID_PATTERN.test(examId) || typeof userId !== "string" || !UUID_PATTERN.test(userId)) return "Demande invalide.";
   if (!(await getExam(examId))) return "Cet examen n'existe plus.";
+  if (!(await canManageExamId(ctx, examId))) return "Cet examen est réservé à d'autres formateurs.";
   if (!(await getUserById(userId))) return "Ce compte n'existe plus.";
   return null;
 }
@@ -25,7 +26,7 @@ async function check(examId: string, userId: string): Promise<string | null> {
 export async function assignExamAction(examId: string, userId: string): Promise<Result> {
   const ctx = await assertTrainer();
   try {
-    const problem = await check(examId, userId);
+    const problem = await check(ctx, examId, userId);
     if (problem) return { ok: false, error: problem };
     await assignExam(examId, userId, ctx.user.id);
     refresh();
@@ -37,8 +38,8 @@ export async function assignExamAction(examId: string, userId: string): Promise<
 }
 
 export async function unassignExamAction(examId: string, userId: string): Promise<Result> {
-  await assertTrainer();
-  const problem = await check(examId, userId);
+  const ctx = await assertTrainer();
+  const problem = await check(ctx, examId, userId);
   if (problem) return { ok: false, error: problem };
   await unassignExam(examId, userId);
   refresh();

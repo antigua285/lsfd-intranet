@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertTrainer } from "@/lib/access";
-import { getAttempt, reopenResult, saveGrading, sendResult } from "@/lib/exams";
+import { canManageExamId, getAttempt, reopenResult, saveGrading, sendResult } from "@/lib/exams";
 import { parseComment, parseGrades } from "@/lib/exams-validation";
 import type { Grade, Verdict } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -22,6 +22,7 @@ async function persist(id: string, payload: GradingPayload, requireComplete: boo
   if (typeof id !== "string" || !UUID_PATTERN.test(id)) return { ok: false, error: "Passage invalide." };
   const attempt = await getAttempt(id);
   if (!attempt) return { ok: false, error: "Ce passage n'existe plus." };
+  if (!(await canManageExamId(ctx, attempt.examId))) return { ok: false, error: "Cet examen est réservé à d'autres formateurs." };
   if (attempt.status !== "submitted") return { ok: false, error: attempt.status === "sent" ? "Résultat déjà envoyé : rouvre la correction pour le modifier." : "L'examen est encore en cours." };
 
   const grades = parseGrades(attempt.snapshot, payload?.grades);
@@ -55,8 +56,10 @@ export async function sendResultAction(id: string, payload: GradingPayload): Pro
 }
 
 export async function reopenResultAction(id: string): Promise<Result> {
-  await assertTrainer();
+  const ctx = await assertTrainer();
   if (typeof id !== "string" || !UUID_PATTERN.test(id)) return { ok: false, error: "Passage invalide." };
+  const attempt = await getAttempt(id);
+  if (!attempt || !(await canManageExamId(ctx, attempt.examId))) return { ok: false, error: "Passage introuvable ou réservé à d'autres formateurs." };
   if (!(await reopenResult(id))) return { ok: false, error: "Impossible de rouvrir." };
   refresh(id);
   return { ok: true };

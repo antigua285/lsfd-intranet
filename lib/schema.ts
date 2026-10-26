@@ -143,6 +143,10 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
+  // Formation par flags : « gérée par » (qui peut modifier / corriger) et « visible par » (qui peut réviser).
+  // Liste vide = comportement d'origine (toute la TD gère ; tout le monde révise).
+  `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,
+  `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS manage_flags text[] NOT NULL DEFAULT '{}'`,
   // Formation : examens sur mesure. La clé d'accès n'est stockée que hachée.
   `CREATE TABLE IF NOT EXISTS exams (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -187,6 +191,7 @@ export const SCHEMA_STATEMENTS: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS exam_attempts_user_idx ON exam_attempts (user_id, started_at DESC)`,
   `CREATE INDEX IF NOT EXISTS exam_attempts_status_idx ON exam_attempts (status, submitted_at DESC)`,
+  `ALTER TABLE exams ADD COLUMN IF NOT EXISTS manage_flags text[] NOT NULL DEFAULT '{}'`,
   // Clé d'accès lisible par la TD (transmission rapide). Les anciens examens n'ont que key_hash.
   `ALTER TABLE exams ADD COLUMN IF NOT EXISTS access_key text`,
   // Qui peut passer quel examen (assigné par la TD ou un modérateur).

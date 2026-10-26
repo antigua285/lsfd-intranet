@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
-import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
+import { getAccessContext, isMissingAccessTableError, isTrainer, listFlags } from "@/lib/access";
+import { cardsFor, isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
 import { StudyDeck } from "./StudyDeck";
 
 export const metadata = { title: "Cartes de révision | LSFD Intranet" };
@@ -26,7 +26,7 @@ async function Content() {
   let cards: Flashcard[] = [];
   let missing = false;
   try {
-    cards = await listCards();
+    cards = cardsFor(ctx, await listCards());
   } catch (error) {
     if (!isMissingFlashcardsTableError(error)) throw error;
     missing = true;
@@ -44,5 +44,13 @@ async function Content() {
     );
   }
   const canEdit = isTrainer(ctx);
-  return <StudyDeck initialCards={cards} canEdit={canEdit} />;
+  let allFlags: { code: string; name: string }[] = [];
+  if (canEdit) {
+    try {
+      allFlags = (await listFlags()).map((f) => ({ code: f.code, name: f.name }));
+    } catch (error) {
+      if (!isMissingAccessTableError(error)) throw error;
+    }
+  }
+  return <StudyDeck initialCards={cards} canEdit={canEdit} allFlags={allFlags} />;
 }

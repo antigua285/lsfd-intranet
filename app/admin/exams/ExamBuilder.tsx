@@ -15,6 +15,7 @@ type Initial = {
   thresholdPercent: number | null;
   maxAttempts: number;
   published: boolean;
+  manageFlags: string[];
   hasKey: boolean;
   /** Clé actuelle lisible (absente pour un ancien examen dont la clé n'est stockée que chiffrée). */
   currentKey?: string | null;
@@ -24,7 +25,7 @@ type Initial = {
 const INPUT = "w-full border border-slate-300 rounded px-2 py-1.5 text-[13px] focus:outline-none focus:border-[#0d2644]";
 const SMALL = "border border-slate-300 text-slate-700 text-[12px] rounded px-2 py-1 hover:bg-slate-100 disabled:opacity-30";
 
-export function ExamBuilder({ examId, initial }: { examId: string | null; initial: Initial }) {
+export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string | null; initial: Initial; allFlags?: { code: string; name: string }[] }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
@@ -33,6 +34,7 @@ export function ExamBuilder({ examId, initial }: { examId: string | null; initia
   const [maxAttempts, setMaxAttempts] = useState(String(initial.maxAttempts));
   const [published, setPublished] = useState(initial.published);
   const [newKey, setNewKey] = useState("");
+  const [manageFlags, setManageFlags] = useState<string[]>(initial.manageFlags ?? []);
   const [questions, setQuestions] = useState<ExamQuestion[]>(initial.questions);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -75,7 +77,7 @@ export function ExamBuilder({ examId, initial }: { examId: string | null; initia
     setMessage(null);
     try {
       const result = await saveExamAction(examId, {
-        title, description, durationMinutes: duration, thresholdPercent: threshold, maxAttempts, published, newKey, questions,
+        title, description, durationMinutes: duration, thresholdPercent: threshold, maxAttempts, published, manageFlags, newKey, questions,
       });
       if (!result.ok) return setMessage({ ok: false, text: result.error });
       setMessage({ ok: true, text: "Examen enregistré." });
@@ -119,6 +121,26 @@ export function ExamBuilder({ examId, initial }: { examId: string | null; initia
           <input className={INPUT} type="text" autoComplete="off" placeholder={initial.hasKey ? "Nouvelle clé (laisser vide pour garder l'actuelle)" : "Clé à donner aux candidats"} value={newKey} maxLength={EXAM_LIMITS.key} onChange={(e) => setNewKey(e.target.value)} />
         </label>
         <p className="text-[12px] text-slate-500">La clé est visible par les modérateurs et la Training Division (page « Clés et assignation »).</p>
+        <fieldset className="text-[13px] border border-slate-200 rounded p-3" data-testid="exam-manage-flags">
+          <legend className="px-1 text-[12px] font-bold uppercase tracking-wide text-slate-600">Gérée par (flags)</legend>
+          <p className="text-[12px] text-slate-500 mb-2">
+            Aucun flag coché : tous les TD gèrent et corrigent cet examen. Sinon, seuls les TD qui possèdent au moins un des flags cochés
+            (ex. OFFICER pour les examens de capitaine) y ont accès. Un TD qui prépare ce grade ne le voit donc pas.
+          </p>
+          {allFlags.length === 0 ? (
+            <p className="text-[12px] text-slate-500">Aucun flag n&apos;existe encore (Administration → Accès &amp; flags).</p>
+          ) : (
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {allFlags.map((f) => (
+                <label key={f.code} className="flex items-center gap-1.5" title={f.name}>
+                  <input type="checkbox" checked={manageFlags.includes(f.code)}
+                    onChange={(e) => setManageFlags((p) => (e.target.checked ? [...p, f.code] : p.filter((c) => c !== f.code)))} />
+                  {f.code}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
         <label className="text-[13px] flex items-center gap-2">
           <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> Publié (les membres peuvent le passer avec la clé)
         </label>

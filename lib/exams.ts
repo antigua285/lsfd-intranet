@@ -1,3 +1,4 @@
+import { canManageWith, type AccessContext } from "./access";
 import { query } from "./db";
 import type {
   AnswerValue,
@@ -15,17 +16,31 @@ import type { ExamInput } from "./exams-validation";
 
 export function isMissingExamsTableError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
-  return e?.code === "42P01" || /relation "?(exams|exam_images|exam_attempts|exam_assignments)"? does not exist/i.test(e?.message ?? "");
+  return e?.code === "42P01" || e?.code === "42703" || /relation "?(exams|exam_images|exam_attempts|exam_assignments)"? does not exist|column "?manage_flags"? does not exist/i.test(e?.message ?? "");
 }
 
 /* ------------------------------------------------------------------ examens */
 
 const EXAM_COLUMNS = `id, title, description, duration_minutes AS "durationMinutes",
   threshold_percent AS "thresholdPercent", max_attempts AS "maxAttempts", published,
-  (key_hash IS NOT NULL OR access_key IS NOT NULL) AS "hasKey", questions, created_at AS "createdAt", updated_at AS "updatedAt"`;
+  (key_hash IS NOT NULL OR access_key IS NOT NULL) AS "hasKey", manage_flags AS "manageFlags", questions, created_at AS "createdAt", updated_at AS "updatedAt"`;
 
 export async function listExams(opts: { onlyPublished?: boolean } = {}): Promise<ExamRecord[]> {
   return query<ExamRecord>(`SELECT ${EXAM_COLUMNS} FROM exams ${opts.onlyPublished ? "WHERE published" : ""} ORDER BY title`);
+}
+
+/** Flags de gestion de chaque examen (id → flags) : sert à filtrer les copies à corriger selon le TD connecté. */
+export async function listExamManageFlags(): Promise<Map<string, string[]>> {
+  const rows = await query<{ id: string; flags: string[] }>(`SELECT id, manage_flags AS flags FROM exams`);
+  return new Map(rows.map((r) => [r.id, r.flags]));
+}
+
+/** Ce formateur peut-il gérer / corriger cet examen ? (examen supprimé ou inconnu : règle d'origine, toute la TD) */
+export async function canManageExamId(ctx: AccessContext, examId: string | null): Promise<boolean> {
+  if (!canManageWith(ctx, [])) return false;
+  if (!examId) return true;
+  const rows = await query<{ flags: string[] }>(`SELECT manage_flags AS flags FROM exams WHERE id = $1`, [examId]);
+  return canManageWith(ctx, rows[0]?.flags ?? []);
 }
 
 export async function getExam(id: string): Promise<ExamRecord | null> {
@@ -47,9 +62,9 @@ export async function listExamKeys(): Promise<Map<string, string | null>> {
 
 export async function createExam(input: ExamInput): Promise<string> {
   const [row] = await query<{ id: string }>(
-    `INSERT INTO exams (title, description, duration_minutes, threshold_percent, max_attempts, published, access_key, questions)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb) RETURNING id`,
-    [input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions)]
+    `INSERT INTO exams (title, description, duration_minutes, threshold_percent, max_attempts, published, access_key, questions, manage_flags)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::text[]) RETURNING id`,
+    [input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags]
   );
   return row.id;
 }
@@ -60,9 +75,9 @@ export async function updateExam(id: string, input: ExamInput): Promise<boolean>
     `UPDATE exams SET title = $2, description = $3, duration_minutes = $4, threshold_percent = $5,
             max_attempts = $6, published = $7,
             key_hash = CASE WHEN $8::text IS NULL THEN key_hash ELSE NULL END,
-            access_key = COALESCE($8::text, access_key), questions = $9::jsonb, updated_at = now()
+            access_key = COALESCE($8::text, access_key), questions = $9::jsonb, manage_flags = $10::text[], updated_at = now()
       WHERE id = $1 RETURNING id`,
-    [id, input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions)]
+    [id, input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags]
   );
   return rows.length > 0;
 }

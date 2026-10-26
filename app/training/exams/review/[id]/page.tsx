@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
 import { getAccessContext, isTrainer } from "@/lib/access";
-import { closeExpiredAttempts, getAttempt, isMissingExamsTableError } from "@/lib/exams";
+import { closeExpiredAttempts, getAttempt, isMissingExamsTableError, canManageExamId } from "@/lib/exams";
 import type { Attempt } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
 import { ExamGrader } from "../../ExamGrader";
@@ -36,5 +36,6 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     if (!isMissingExamsTableError(error)) throw error;
   }
   if (!attempt || attempt.status === "in_progress") notFound();
+  if (!(await canManageExamId(ctx, attempt.examId))) notFound();
   return <ExamGrader attempt={attempt} />;
 }

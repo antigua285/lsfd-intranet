@@ -2,9 +2,9 @@ import { Suspense } from "react";
 import { LinkButton } from "@/components/LinkButton";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
-import { closeExpiredAttempts, listAttempts, listExams } from "@/lib/exams";
-import { listCards } from "@/lib/flashcards";
+import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
+import { closeExpiredAttempts, listAttempts, listExamManageFlags, listExams } from "@/lib/exams";
+import { cardsFor, listCards } from "@/lib/flashcards";
 import { computeProgress, getTemplate, listNotebooks, syncNotebooks } from "@/lib/probation";
 
 export const metadata = { title: "Espace TD | LSFD Intranet" };
@@ -65,15 +65,16 @@ async function Content() {
   const [toGrade, exams, notebooks, cards] = await Promise.all([
     safe(async () => {
       await closeExpiredAttempts();
-      return (await listAttempts({ status: "submitted" })).length;
+      const [attempts, flagsByExam] = await Promise.all([listAttempts({ status: "submitted" }), listExamManageFlags()]);
+      return attempts.filter((a) => canManageWith(ctx, a.examId ? flagsByExam.get(a.examId) ?? [] : [])).length;
     }),
-    safe(() => listExams()),
+    safe(async () => (await listExams()).filter((e) => canManageWith(ctx, e.manageFlags))),
     safe(async () => {
       await syncNotebooks();
       const [list, template] = await Promise.all([listNotebooks(false), getTemplate()]);
       return { total: list.length, eligible: list.filter((n) => computeProgress(template, n.checked).eligible).length };
     }),
-    safe(() => listCards()),
+    safe(async () => cardsFor(ctx, await listCards()).filter((c) => c.editable)),
   ]);
 
   return (

@@ -54,6 +54,8 @@ export type ExamRecord = {
   maxAttempts: number;
   published: boolean;
   hasKey: boolean;
+  /** Si non vide : seuls les TD qui possèdent un de ces flags gèrent et corrigent cet examen. */
+  manageFlags: string[];
   questions: ExamQuestion[];
   createdAt: string;
   updatedAt: string;

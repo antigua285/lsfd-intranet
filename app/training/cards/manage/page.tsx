@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
-import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
+import { getAccessContext, isMissingAccessTableError, isTrainer, listFlags } from "@/lib/access";
+import { cardsFor, isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
 import { CardManager } from "./CardManager";
 
 export const metadata = { title: "Gérer les cartes | LSFD Intranet" };
@@ -28,10 +28,17 @@ async function Content() {
   if (!isTrainer(ctx)) notFound();
   let cards: Flashcard[] = [];
   try {
-    cards = await listCards();
+    // Seules les cartes que ce formateur a le droit de gérer.
+    cards = cardsFor(ctx, await listCards()).filter((c) => c.editable);
   } catch (error) {
     if (!isMissingFlashcardsTableError(error)) throw error;
     return <p className="text-[13px] text-slate-600">Lance <code className="bg-slate-100 px-1 rounded">npm run db:setup</code> depuis ton PC, puis recharge.</p>;
   }
-  return <CardManager initialCards={cards} />;
+  let allFlags: { code: string; name: string }[] = [];
+  try {
+    allFlags = (await listFlags()).map((f) => ({ code: f.code, name: f.name }));
+  } catch (error) {
+    if (!isMissingAccessTableError(error)) throw error;
+  }
+  return <CardManager initialCards={cards} allFlags={allFlags} />;
 }

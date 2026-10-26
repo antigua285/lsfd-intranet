@@ -1,3 +1,4 @@
+import { parseFlagCodes } from "./access-rules";
 import {
   EXAM_LIMITS,
   QUESTION_TYPES,
@@ -45,6 +46,8 @@ export type ExamInput = {
   thresholdPercent: number | null;
   maxAttempts: number;
   published: boolean;
+  /** Flags des TD autorisés à gérer / corriger l'examen (vide = toute la TD). */
+  manageFlags: string[];
   questions: ExamQuestion[];
   /** Nouvelle clé d'accès (vide = ne pas changer). */
   newKey: string;
@@ -64,6 +67,8 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
   if (!threshold.ok) return threshold;
   const attempts = intOrNull(input.maxAttempts ?? 1, "Le nombre de tentatives", 1, 20);
   if (!attempts.ok) return attempts;
+  const manageFlags = parseFlagCodes(input.manageFlags);
+  if (!manageFlags.ok) return manageFlags;
 
   let newKey = "";
   if (input.newKey !== undefined && input.newKey !== null && input.newKey !== "") {
@@ -129,6 +134,7 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
       thresholdPercent: threshold.value,
       maxAttempts: attempts.value ?? 1,
       published: input.published === true,
+      manageFlags: manageFlags.value,
       questions,
       newKey,
     },

@@ -52,6 +52,16 @@ export async function flagUsage(code: string): Promise<string[]> {
   for (const row of await query<{ title: string }>(`SELECT title FROM forms WHERE $1 = ANY(flags)`, [code])) {
     usage.push(`formulaire « ${row.title} »`);
   }
+  // Formation : examens et cartes (si la base n'est pas encore à jour pour ces colonnes, on ignore).
+  try {
+    for (const row of await query<{ title: string }>(`SELECT title FROM exams WHERE $1 = ANY(manage_flags)`, [code])) {
+      usage.push(`examen « ${row.title} »`);
+    }
+    const [cards] = await query<{ n: number }>(`SELECT count(*)::int AS n FROM flashcards WHERE $1 = ANY(flags) OR $1 = ANY(manage_flags)`, [code]);
+    if (cards?.n) usage.push(`${cards.n} carte(s) de révision`);
+  } catch {
+    /* tables de formation absentes ou pas à jour */
+  }
   return usage;
 }
 
@@ -173,6 +183,16 @@ export const TRAINER_FLAG = "TD";
 
 export function isTrainer(ctx: AccessContext): boolean {
   return ctx.user.isAdmin || ctx.flags.includes(TRAINER_FLAG);
+}
+
+/**
+ * Formateur autorisé sur un contenu de formation précis (examen, carte…).
+ * Liste de flags vide : toute la TD. Sinon il faut être de la TD ET posséder au moins un de ces flags
+ * (un TD qui prépare un grade supérieur ne gère donc pas les contenus de ce grade).
+ */
+export function canManageWith(ctx: AccessContext, manageFlags: readonly string[]): boolean {
+  if (!isTrainer(ctx)) return false;
+  return ctx.user.isAdmin || manageFlags.length === 0 || manageFlags.some((f) => ctx.flags.includes(f));
 }
 
 export async function assertTrainer(): Promise<AccessContext> {
