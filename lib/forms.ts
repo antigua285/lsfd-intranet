@@ -5,6 +5,7 @@ import type {
   EffectLogEntry,
   FormContent,
   FormRecord,
+  Attachment,
   Submission,
   SubmissionSummary,
 } from "./forms-types";
@@ -159,11 +160,12 @@ export async function getSubmission(id: string): Promise<Submission | null> {
       answers: Record<string, string>;
       labels: Record<string, string>;
       effects: EffectLogEntry[];
+      attachments: Attachment[];
       formFlags: string[];
     }
   >(
     `SELECT ${SUMMARY_COLUMNS}, s.submitted_by AS "submittedBy", s.form_snapshot AS snapshot,
-            s.answers, s.labels, s.effects, s.form_flags AS "formFlags"
+            s.answers, s.labels, s.effects, s.attachments, s.form_flags AS "formFlags"
        FROM form_submissions s WHERE s.id = $1`,
     [id]
   );
@@ -205,6 +207,7 @@ export async function submitReport(input: {
   formId: string;
   content: FormContent;
   answers: Record<string, string>;
+  attachments?: Attachment[];
   submitter: { id: string; name: string };
   /** Flags du formulaire au moment de l'envoi. */
   flags: string[];
@@ -228,8 +231,8 @@ export async function submitReport(input: {
 
   const [row] = await query<{ id: string }>(
     `INSERT INTO form_submissions
-       (form_id, form_title, form_snapshot, answers, labels, summary, submitted_by, submitter_name, form_flags)
-     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8, $9::text[])
+       (form_id, form_title, form_snapshot, answers, labels, summary, submitted_by, submitter_name, form_flags, attachments)
+     VALUES ($1, $2, $3::jsonb, $4::jsonb, $5::jsonb, $6, $7, $8, $9::text[], $10::jsonb)
      RETURNING id`,
     [
       input.formId,
@@ -241,6 +244,7 @@ export async function submitReport(input: {
       input.submitter.id,
       input.submitter.name,
       input.flags,
+      JSON.stringify(input.attachments ?? []),
     ]
   );
   const submissionId = row.id;

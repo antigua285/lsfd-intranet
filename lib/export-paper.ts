@@ -43,59 +43,60 @@ export function planPages(rows: { top: number; bottom: number }[], totalHeight: 
   return pages;
 }
 
-/** Découpe le rendu complet en pages Letter (une image canvas par page), avec « Page i / n » en bas si plusieurs pages. */
-function slicePages(el: HTMLElement, canvas: HTMLCanvasElement): HTMLCanvasElement[] {
-  const box = el.getBoundingClientRect();
-  const rows = [...el.querySelectorAll<HTMLElement>("[data-row]")].map((r) => {
-    const b = r.getBoundingClientRect();
-    return { top: b.top - box.top, bottom: b.bottom - box.top };
+/** Attend que les images d'une page soient chargées (ou en échec), 8 s au maximum. */
+async function waitForImages(els: HTMLElement[]) {
+  const imgs = els.flatMap((el) => [...el.querySelectorAll<HTMLImageElement>("img")]);
+  imgs.forEach((img) => {
+    img.loading = "eager";
   });
-  const pages = planPages(rows, el.scrollHeight);
-  const ratio = canvas.width / PAPER_WIDTH;
-  return pages.map((page, index) => {
-    const slice = document.createElement("canvas");
-    slice.width = PAPER_WIDTH * ratio;
-    slice.height = PAPER_HEIGHT * ratio;
-    const ctx = slice.getContext("2d")!;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    const sy = page.from * ratio;
-    const sh = Math.min((page.to - page.from) * ratio, canvas.height - sy);
-    const dy = index === 0 ? 0 : PAPER_MARGIN * ratio;
-    ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, dy, canvas.width, sh);
-    if (pages.length > 1) {
-      ctx.fillStyle = "#555";
-      ctx.font = `${11 * ratio}px Arial, Helvetica, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(`Page ${index + 1} / ${pages.length}`, slice.width / 2, slice.height - 20 * ratio);
-    }
-    return slice;
-  });
+  const pending = imgs.filter((img) => !img.complete).map(
+    (img) =>
+      new Promise<void>((resolve) => {
+        img.addEventListener("load", () => resolve(), { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
+      })
+  );
+  if (pending.length) await Promise.race([Promise.all(pending), new Promise((r) => setTimeout(r, 8000))]);
+  await Promise.all(imgs.map((img) => (img.decode ? img.decode().catch(() => undefined) : undefined)));
+}
+
+/** Rend une page (un élément Letter déjà découpé à l'écran) en canvas, avec « Page i / n » si plusieurs pages. */
+async function renderPage(el: HTMLElement, index: number, total: number): Promise<HTMLCanvasElement> {
+  const canvas = await renderCanvas(el);
+  if (total > 1) {
+    const ctx = canvas.getContext("2d")!;
+    const ratio = canvas.width / PAPER_WIDTH;
+    ctx.fillStyle = "#555";
+    ctx.font = `${11 * ratio}px Arial, Helvetica, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(`Page ${index + 1} / ${total}`, canvas.width / 2, canvas.height - 20 * ratio);
+  }
+  return canvas;
 }
 
 /** PNG : une image par page (le navigateur peut demander d'autoriser plusieurs téléchargements). */
-export async function downloadPng(el: HTMLElement, baseName: string) {
-  const canvas = await renderCanvas(el);
-  const pages = slicePages(el, canvas);
-  for (let i = 0; i < pages.length; i++) {
-    const blob = await new Promise<Blob | null>((resolve) => pages[i].toBlob(resolve, "image/png"));
+export async function downloadPng(pageEls: HTMLElement[], baseName: string) {
+  await waitForImages(pageEls);
+  for (let i = 0; i < pageEls.length; i++) {
+    const canvas = await renderPage(pageEls[i], i, pageEls.length);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
     if (!blob) throw new Error("Impossible de créer l'image.");
-    download(blob, pages.length > 1 ? `${baseName}-page-${i + 1}.png` : `${baseName}.png`);
-    if (i < pages.length - 1) await new Promise((r) => setTimeout(r, 400));
+    download(blob, pageEls.length > 1 ? `${baseName}-page-${i + 1}.png` : `${baseName}.png`);
+    if (i < pageEls.length - 1) await new Promise((r) => setTimeout(r, 400));
   }
 }
 
-export async function downloadPdf(el: HTMLElement, baseName: string) {
-  const canvas = await renderCanvas(el);
+export async function downloadPdf(pageEls: HTMLElement[], baseName: string) {
+  await waitForImages(pageEls);
   const { jsPDF } = await import("jspdf");
-  const pages = slicePages(el, canvas);
   const pdf = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-  pages.forEach((slice, index) => {
-    if (index > 0) pdf.addPage();
-    pdf.addImage(slice.toDataURL("image/png"), "PNG", 0, 0, pageW, pageH, undefined, "FAST");
-  });
+  for (let i = 0; i < pageEls.length; i++) {
+    const canvas = await renderPage(pageEls[i], i, pageEls.length); // une page à la fois : pas de canvas géant
+    if (i > 0) pdf.addPage();
+    pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, pageW, pageH, undefined, "FAST");
+  }
   pdf.save(`${baseName}.pdf`);
 }
 

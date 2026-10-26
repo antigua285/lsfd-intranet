@@ -3,19 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { canSee, getAccessContext } from "@/lib/access";
 import { getForm, isMissingFormsTableError, submitReport } from "@/lib/forms";
-import { parseAnswers } from "@/lib/forms-validation";
+import { parseAnswers, parseAttachments } from "@/lib/forms-validation";
 import { UUID_PATTERN } from "@/lib/validation";
 
 export type SubmitFormResult =
   | { ok: true; id: string }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
-/** Date du jour à Los Angeles (AAAA-MM-JJ) : c'est elle qui sert aux règles « date d'envoi ». */
-function todayInLosAngeles(): string {
+/** Date du jour à Los Santos (fuseau America/Los_Angeles, AAAA-MM-JJ) : c'est elle qui sert aux règles « date d'envoi ». */
+function todayInLosSantos(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
 }
 
-export async function submitFormAction(formId: string, rawAnswers: unknown): Promise<SubmitFormResult> {
+export async function submitFormAction(formId: string, rawAnswers: unknown, rawAttachments?: unknown): Promise<SubmitFormResult> {
   const ctx = await getAccessContext();
   if (!ctx) throw new Error("Session expirée, reconnecte-toi.");
   const me = ctx.user;
@@ -31,6 +31,9 @@ export async function submitFormAction(formId: string, rawAnswers: unknown): Pro
       return { ok: false, error: "Corrige les champs signalés.", fieldErrors: errors };
     }
 
+    const attachments = parseAttachments(form.definition, rawAttachments);
+    if (!attachments.ok) return { ok: false, error: attachments.error };
+
     const result = await submitReport({
       formId: form.id,
       content: {
@@ -41,9 +44,10 @@ export async function submitFormAction(formId: string, rawAnswers: unknown): Pro
         definition: form.definition,
       },
       answers,
+      attachments: attachments.value,
       submitter: { id: me.id, name: `${me.firstName} ${me.lastName}` },
       flags: form.flags,
-      todayIso: todayInLosAngeles(),
+      todayIso: todayInLosSantos(),
     });
     if (result.ok) {
       revalidatePath("/admin/reports");

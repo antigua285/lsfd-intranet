@@ -11,7 +11,7 @@ export const metadata = { title: "Formulaire | LSFD Intranet" };
 
 export default function FillFormPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <div className="max-w-3xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
+    <div className="max-w-5xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
         <FillContent params={params} />
       </Suspense>
@@ -47,7 +47,7 @@ async function FillContent({ params }: { params: Promise<{ id: string }> }) {
   }
 
   return (
-    <>
+    <div className={form.definition.allowAttachments === true ? "" : "max-w-3xl mx-auto"}>
       <Link href="/forms" className="text-[12px] text-slate-500 hover:underline">← Tous les formulaires</Link>
       <header className="mt-2 mb-5 pb-3 border-b-2 border-slate-800">
         <h1 className="text-xl font-bold text-slate-900 uppercase">{form.title}</h1>
@@ -56,8 +56,8 @@ async function FillContent({ params }: { params: Promise<{ id: string }> }) {
           <p key={i} className="text-[13px] text-slate-600">{line}</p>
         ))}
       </header>
-      <FormFiller formId={form.id} fields={form.definition.fields} pointOptions={pointOptions} />
+      <FormFiller formId={form.id} fields={form.definition.fields} pointOptions={pointOptions} allowAttachments={form.definition.allowAttachments === true} />
       {form.footer && <p className="mt-6 text-[12px] italic text-slate-600 whitespace-pre-wrap">{form.footer}</p>}
-    </>
+    </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Combobox, type ComboItem } from "@/components/Combobox";
-import { FIELD_META, checkedIds, parseImageUrl, type FormField } from "@/lib/forms-types";
+import { FIELD_META, MAX_ATTACHMENTS, MAX_CAPTION, checkedIds, parseImageUrl, type Attachment, type FormField } from "@/lib/forms-types";
 import { LIMITS } from "@/lib/forms-validation";
 import { splitAddress, suggestPlaces } from "@/lib/locations";
 import { submitFormAction } from "./actions";
@@ -15,13 +15,15 @@ type Props = {
   fields: FormField[];
   /** Points de la carte proposés, par type (uniquement ceux dont le formulaire a besoin). */
   pointOptions: Record<string, PointOption[]>;
+  /** Le formulaire autorise-t-il les pièces jointes ? */
+  allowAttachments?: boolean;
 };
 
 const LINE =
   "w-full bg-transparent border-0 border-b border-slate-500 px-1 py-1 text-[14px] focus:outline-none focus:border-[#0d2644] focus:bg-[#f4f8fc] aria-[invalid=true]:border-red-600";
 
 /** Formulaire en ligne : sobre, façon papier administratif (libellé suivi d'une ligne à remplir). */
-export function FormFiller({ formId, fields, pointOptions }: Props) {
+export function FormFiller({ formId, fields, pointOptions, allowAttachments = false }: Props) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   // Texte tapé dans un champ « point » avant d'avoir choisi dans la liste.
@@ -29,6 +31,7 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const set = (id: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -40,7 +43,7 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
     setBusy(true);
     setFormError(null);
     try {
-      const result = await submitFormAction(formId, answers);
+      const result = await submitFormAction(formId, answers, allowAttachments ? attachments.filter((a) => a.url.trim()) : []);
       if (result.ok) {
         router.push(`/reports/${result.id}`);
         return;
@@ -56,7 +59,8 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
 
   return (
     <form onSubmit={submit} noValidate className="font-['Arial','Helvetica',sans-serif] text-[14px] text-slate-900">
-      <div className="flex flex-col gap-3">
+      <div className={allowAttachments ? "grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] items-start" : ""}>
+      <div className="flex flex-col gap-3 min-w-0">
         {fields.map((field, index) => {
           if (field.type === "heading") {
             return (
@@ -180,6 +184,8 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
           );
         })}
       </div>
+      {allowAttachments && <AttachmentsPanel items={attachments} onChange={setAttachments} />}
+      </div>
 
       {formError && (
         <p role="alert" data-testid="form-error" className="mt-5 border border-red-300 bg-red-50 text-red-800 text-[13px] rounded px-3 py-2">
@@ -195,6 +201,57 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
         </span>
       </div>
     </form>
+  );
+}
+
+/** Panneau « pièces jointes » : jusqu'à 10 liens d'images (imgur / imgbb), avec aperçu et légende facultative. */
+function AttachmentsPanel({ items, onChange }: { items: Attachment[]; onChange: (next: Attachment[]) => void }) {
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const patch = (i: number, p: Partial<Attachment>) => onChange(items.map((a, j) => (j === i ? { ...a, ...p } : a)));
+  return (
+    <aside data-testid="attachments-panel" aria-label="Pièces jointes" className="border border-slate-300 rounded bg-slate-50 p-3 mt-5 lg:mt-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-bold uppercase text-[13px]">Pièces jointes</h2>
+        <span data-testid="attachments-count" className="text-[12px] text-slate-500">{items.length} / {MAX_ATTACHMENTS}</span>
+      </div>
+      <p className="text-[11px] text-slate-500 mt-0.5 mb-2">Liens directs d&apos;images (https://i.imgur.com/… ou https://i.ibb.co/…). Seuls les liens sont conservés.</p>
+      <ul className="flex flex-col gap-3">
+        {items.map((item, i) => {
+          const check = item.url.trim() ? parseImageUrl(item.url) : null;
+          const problem = check && !check.ok ? check.error : "";
+          const preview = check && check.ok ? check.value : null;
+          return (
+            <li key={i} data-testid="attachment-item" className="border border-slate-200 bg-white rounded p-2">
+              <label className="block text-[12px] font-bold">
+                Pièce jointe {i + 1}
+                <input className={`${LINE} font-normal`} value={item.url} maxLength={300} inputMode="url" placeholder="https://i.imgur.com/…"
+                  aria-invalid={!!problem} onChange={(e) => patch(i, { url: e.target.value })} />
+              </label>
+              {problem && <p role="alert" className="text-[12px] text-red-700 mt-0.5">{problem}</p>}
+              <label className="block text-[12px] mt-1">
+                Légende (facultatif)
+                <input className={LINE} value={item.caption} maxLength={MAX_CAPTION} onChange={(e) => patch(i, { caption: e.target.value })} />
+              </label>
+              {preview && !failed[preview] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt={`Aperçu de la pièce jointe ${i + 1}`} referrerPolicy="no-referrer" onError={() => setFailed((p) => ({ ...p, [preview]: true }))} className="mt-2 max-h-32 max-w-full border border-slate-300" />
+              )}
+              {preview && failed[preview] && <p role="alert" className="text-[12px] text-red-700 mt-1">Image introuvable : vérifie que le lien est public et direct.</p>}
+              <button type="button" className="mt-2 text-[12px] text-red-700 hover:underline" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+                Retirer la pièce jointe {i + 1}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {items.length < MAX_ATTACHMENTS ? (
+        <button type="button" data-testid="add-attachment" className="mt-3 w-full border border-[#0d2644] text-[#0d2644] text-[12px] font-bold uppercase tracking-wide rounded px-3 py-2 hover:bg-white" onClick={() => onChange([...items, { url: "", caption: "" }])}>
+          + Ajouter une pièce jointe
+        </button>
+      ) : (
+        <p className="mt-3 text-[12px] text-slate-600">Maximum atteint ({MAX_ATTACHMENTS} pièces jointes).</p>
+      )}
+    </aside>
   );
 }
 

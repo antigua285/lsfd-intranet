@@ -27,6 +27,7 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
   const [flags, setFlags] = useState<string[]>(initial.flags);
   const [fields, setFields] = useState<FormField[]>(initial.definition.fields);
   const [actions, setActions] = useState<FormAction[]>(initial.definition.actions);
+  const [allowAttachments, setAllowAttachments] = useState(initial.definition.allowAttachments === true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -89,7 +90,7 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
     try {
       const result = await saveFormAction(formId, {
         title, subtitle, headerLines: headerLines.filter((l) => l.trim()), footer, published, flags,
-        definition: { fields, actions },
+        definition: { fields, actions, allowAttachments },
       });
       if (!result.ok) return setMessage({ ok: false, text: result.error });
       setMessage({ ok: true, text: "Formulaire enregistré." });
@@ -102,7 +103,7 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
     }
   }
 
-  const previewContent = { title, subtitle, headerLines: headerLines.filter((l) => l.trim()), footer, definition: { fields, actions } };
+  const previewContent = { title, subtitle, headerLines: headerLines.filter((l) => l.trim()), footer, definition: { fields, actions, allowAttachments } };
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -130,6 +131,10 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
           </fieldset>
           <label className="text-[13px]">Note de bas de page (en italique)
             <textarea className={INPUT} rows={2} value={footer} maxLength={LIMITS.footer} onChange={(e) => setFooter(e.target.value)} />
+          </label>
+          <label className="text-[13px] flex items-center gap-2" data-testid="allow-attachments">
+            <input type="checkbox" checked={allowAttachments} onChange={(e) => setAllowAttachments(e.target.checked)} />
+            Autoriser les pièces jointes (jusqu&apos;à 10 liens d&apos;images imgur / imgbb, ajoutés en fin de rapport)
           </label>
           <label className="text-[13px] flex items-center gap-2">
             <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />

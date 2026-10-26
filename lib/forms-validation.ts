@@ -5,6 +5,9 @@ import {
   FIELD_TYPES,
   formatDate,
   parseImageUrl,
+  MAX_ATTACHMENTS,
+  MAX_CAPTION,
+  type Attachment,
   type FormAction,
   type FormDefinition,
   type FormField,
@@ -179,9 +182,30 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
       footer: footer.value,
       published: input.published === true,
       flags: flags.value,
-      definition: { fields, actions },
+      definition: { fields, actions, allowAttachments: (def as { allowAttachments?: unknown }).allowAttachments === true },
     },
   };
+}
+
+/** Vérifie les pièces jointes reçues du navigateur (autorisées par le formulaire, 10 maximum, liens imgur / imgbb). */
+export function parseAttachments(definition: FormDefinition, raw: unknown): { ok: true; value: Attachment[] } | { ok: false; error: string } {
+  if (raw === undefined || raw === null) return { ok: true, value: [] };
+  if (!Array.isArray(raw)) return { ok: false, error: "Pièces jointes invalides." };
+  if (raw.length === 0) return { ok: true, value: [] };
+  if (!definition.allowAttachments) return { ok: false, error: "Ce formulaire n'accepte pas de pièces jointes." };
+  if (raw.length > MAX_ATTACHMENTS) return { ok: false, error: `${MAX_ATTACHMENTS} pièces jointes au maximum.` };
+  const out: Attachment[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const item = raw[i] as Record<string, unknown> | null;
+    if (!item || typeof item.url !== "string") return { ok: false, error: `Pièce jointe ${i + 1} : lien manquant.` };
+    const url = parseImageUrl(item.url);
+    if (!url.ok) return { ok: false, error: `Pièce jointe ${i + 1} : ${url.error}` };
+    const caption = typeof item.caption === "string" ? item.caption.replace(/\s+/g, " ").trim() : "";
+    if (caption.length > MAX_CAPTION) return { ok: false, error: `Pièce jointe ${i + 1} : légende trop longue (${MAX_CAPTION} caractères max).` };
+    if (/[\u0000-\u001f\u007f]/.test(caption)) return { ok: false, error: `Pièce jointe ${i + 1} : légende invalide.` };
+    out.push({ url: url.value, caption });
+  }
+  return { ok: true, value: out };
 }
 
 export type AnswersResult = { answers: Record<string, string>; errors: Record<string, string> };

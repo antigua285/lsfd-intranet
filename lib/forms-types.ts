@@ -53,7 +53,17 @@ export type FormAction = {
   mapping?: Record<string, string>;
 };
 
-export type FormDefinition = { fields: FormField[]; actions: FormAction[] };
+/** Pièce jointe d'un rapport : un lien d'image (imgur / imgbb) et une légende facultative. */
+export type Attachment = { url: string; caption: string };
+export const MAX_ATTACHMENTS = 10;
+export const MAX_CAPTION = 80;
+
+export type FormDefinition = {
+  fields: FormField[];
+  actions: FormAction[];
+  /** Le rapporteur peut joindre jusqu'à MAX_ATTACHMENTS liens d'images. */
+  allowAttachments?: boolean;
+};
 
 /** Contenu d'un formulaire tel qu'il apparaît sur le papier officiel. */
 export type FormContent = {
@@ -99,6 +109,8 @@ export type Submission = SubmissionSummary & {
   /** Texte à afficher pour les réponses qui ne sont pas du texte brut (ex. point de la carte). */
   labels: Record<string, string>;
   effects: EffectLogEntry[];
+  /** Pièces jointes (liens d'images) ; vide si le formulaire ne les autorisait pas. */
+  attachments: Attachment[];
 };
 
 /** « 2026-10-26 » -> « 10/26/2026 » (présentation américaine, comme les formulaires officiels). */

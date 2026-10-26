@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useState } from "react";
-import { answerText, checkedIds, type FormContent, type FormField } from "@/lib/forms-types";
+import { answerText, checkedIds, type Attachment, type FormContent, type FormField } from "@/lib/forms-types";
 
 /** Format Letter (8,5 × 11 pouces) à 96 dpi : sert au PDF et au PNG. */
 export const PAPER_WIDTH = 816;
@@ -13,6 +13,8 @@ type Props = {
   answers?: Record<string, string>;
   labels?: Record<string, string>;
   testId?: string;
+  /** Pièces jointes (liens d'images) : annexées en fin de rapport, une par bloc. */
+  attachments?: Attachment[];
 };
 
 type Row = FormField[];
@@ -34,6 +36,8 @@ function toRows(fields: FormField[]): Row[] {
 const INK = "#000";
 /** Hauteur maximale d'une image sur le papier : elle tient toujours sur une page. */
 const IMAGE_MAX_HEIGHT = 420;
+/** Une pièce jointe peut occuper presque toute une page. */
+const ATTACHMENT_MAX_HEIGHT = 780;
 
 /**
  * Le « papier officiel » : en-tête (sceau + titre + sous-titre), sections en gras, champs
@@ -41,7 +45,7 @@ const IMAGE_MAX_HEIGHT = 420;
  * Les styles sont écrits en ligne pour que l'export soit identique à l'écran.
  */
 export const FormPaper = forwardRef<HTMLDivElement, Props>(function FormPaper(
-  { content, answers = {}, labels = {}, testId = "form-paper" },
+  { content, answers = {}, labels = {}, testId = "form-paper", attachments = [] },
   ref
 ) {
   const [sealOk, setSealOk] = useState(true);
@@ -94,6 +98,15 @@ export const FormPaper = forwardRef<HTMLDivElement, Props>(function FormPaper(
         <PaperRow key={row[0].id} row={row} answers={answers} labels={labels} />
       ))}
 
+      {attachments.length > 0 && (
+        <div data-row style={{ fontWeight: 700, fontSize: 15, textTransform: "uppercase", marginTop: 22, marginBottom: 10 }}>
+          Pièces jointes ({attachments.length})
+        </div>
+      )}
+      {attachments.map((a, i) => (
+        <AttachmentBlock key={`${i}-${a.url}`} attachment={a} index={i} />
+      ))}
+
       {content.footer && (
         <div data-row style={{ marginTop: "auto", paddingTop: 28, fontSize: 12, fontStyle: "italic", whiteSpace: "pre-wrap" }}>
           {content.footer}
@@ -102,6 +115,39 @@ export const FormPaper = forwardRef<HTMLDivElement, Props>(function FormPaper(
     </div>
   );
 });
+
+/** Une pièce jointe : l'image s'affiche dès qu'elle est chargée (réserve de place + repli si le lien est mort). */
+function AttachmentBlock({ attachment, index }: { attachment: Attachment; index: number }) {
+  const [state, setState] = useState<"loading" | "ok" | "error">("loading");
+  return (
+    <div data-row data-attachment style={{ margin: "6px 0 14px" }}>
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>
+        Pièce jointe {index + 1}
+        {attachment.caption ? ` — ${attachment.caption}` : ""}
+      </div>
+      {state === "error" ? (
+        <div style={{ height: 64, border: `1px dashed ${INK}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontStyle: "italic" }}>
+          Image indisponible (lien supprimé ou inaccessible)
+        </div>
+      ) : (
+        <div style={{ minHeight: state === "loading" ? 64 : 0, background: state === "loading" ? "#f1f1f1" : undefined }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={attachment.url}
+            alt={attachment.caption || `Pièce jointe ${index + 1}`}
+            referrerPolicy="no-referrer"
+            loading="eager"
+            decoding="async"
+            data-attachment-img
+            onLoad={() => setState("ok")}
+            onError={() => setState("error")}
+            style={{ display: "block", maxWidth: "100%", maxHeight: ATTACHMENT_MAX_HEIGHT, objectFit: "contain", visibility: state === "ok" ? "visible" : "hidden", height: state === "ok" ? undefined : 0 }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PaperRow({ row, answers, labels }: { row: Row; answers: Record<string, string>; labels: Record<string, string> }) {
   const first = row[0];

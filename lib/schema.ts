@@ -132,6 +132,8 @@ export const SCHEMA_STATEMENTS: string[] = [
   `ALTER TABLE forms ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,
   // Copie des flags du formulaire sur chaque rapport (reste valable si le formulaire est supprimé).
   `ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS form_flags text[] NOT NULL DEFAULT '{}'`,
+  // Pièces jointes d'un rapport : liste de { url, caption } (liens d'images, jamais de fichiers).
+  `ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb`,
   // Formation : cartes de révision (question au recto, réponse au verso).
   `CREATE TABLE IF NOT EXISTS flashcards (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
