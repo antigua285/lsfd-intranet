@@ -10,7 +10,7 @@ export type WeatherState =
 
 const REFRESH_MS = 10 * 60 * 1000;
 
-/** Météo actuelle de Los Angeles, rafraîchie toutes les 10 minutes. */
+/** Prévision météo de Los Santos (heure réelle + 7 h), rafraîchie toutes les 10 minutes. */
 export function useWeather(): WeatherState {
   const [state, setState] = useState<WeatherState>({ status: "loading" });
 
