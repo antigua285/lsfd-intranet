@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Combobox } from "@/components/Combobox";
 import {
   DETAIL_FIELDS,
   FEATURE_KINDS,
@@ -10,6 +11,7 @@ import {
   ZONE_META,
   featureMatches,
   sortByName,
+  suggestHydrantNames,
   type FeatureKind,
   type MapFeature,
   type MapZone,
@@ -355,12 +357,15 @@ export function ToolsCard({
 
 export function FeatureForm({
   feature,
+  allFeatures = [],
   busy,
   message,
   onSave,
   onDelete,
 }: {
   feature: MapFeature;
+  /** Toutes les bornes de la carte : sert à suggérer le prochain numéro (DVS5 → DVS6). */
+  allFeatures?: MapFeature[];
   busy: boolean;
   message: string | null;
   onSave: (name: string, details: Record<string, string>) => void;
@@ -387,13 +392,25 @@ export function FeatureForm({
         )}
         <label className="flex flex-col gap-0.5">
           <span className="text-[11px] text-slate-500">Nom{feature.kind === "hydrant" ? " (unique)" : ""}</span>
-          <input
-            className={INPUT}
-            value={name}
-            maxLength={80}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          {feature.kind === "hydrant" ? (
+            <Combobox
+              ariaLabel="Nom (unique)"
+              className={INPUT}
+              value={name}
+              placeholder="Ex. DVS pour proposer DVS6"
+              onChange={setName}
+              items={suggestHydrantNames(allFeatures, name, feature.id).map((s) => ({ key: s, label: s, hint: "Prochain numéro" }))}
+              onPick={(item) => setName(item.label)}
+            />
+          ) : (
+            <input
+              className={INPUT}
+              value={name}
+              maxLength={80}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          )}
         </label>
         {DETAIL_FIELDS[feature.kind].map((field) => (
           <label key={field.key} className="flex flex-col gap-0.5">

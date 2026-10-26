@@ -738,6 +738,7 @@ export function MapView({ initialFeatures, initialZones, editing, showReportLink
           <FeatureForm
             key={selectedFeature.id}
             feature={selectedFeature}
+            allFeatures={features}
             busy={busy}
             message={notice}
             onSave={(name, details) => void saveFeature(selectedFeature.id, name, details)}

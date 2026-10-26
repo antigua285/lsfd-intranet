@@ -163,6 +163,44 @@ export function featureMatches(f: { name: string; code?: string | null }, needle
   return f.name.toLowerCase().includes(needle) || (f.code ?? "").includes(needle);
 }
 
+/**
+ * Suggestions de noms de bornes par bloc de 3 lettres : si « DVS1 » à « DVS5 » existent, taper « DVS »
+ * propose « DVS6 ». Les préfixes sont reconnus automatiquement d'après les noms déjà utilisés
+ * (3 lettres suivies d'un numéro, avec un éventuel espace ou tiret que l'on reprend tel quel).
+ * `exceptId` : la borne en cours de modification, qu'on ne compte pas.
+ */
+export function suggestHydrantNames(
+  features: { id: string; kind: string; name: string }[],
+  typed: string,
+  exceptId?: string
+): string[] {
+  const input = typed.trim().toUpperCase();
+  const m = /^([A-Z]{1,3})(?:[ -]?(\d*))?$/.exec(input);
+  if (!m) return [];
+  const [, letters, digits = ""] = m;
+  const groups = new Map<string, { max: number; sep: string }>();
+  const taken = new Set<string>();
+  for (const f of features) {
+    if (f.kind !== "hydrant" || f.id === exceptId) continue;
+    taken.add(f.name.trim().toUpperCase());
+    const n = /^([A-Za-z]{3})([ -]?)(\d+)$/.exec(f.name.trim());
+    if (!n) continue;
+    const prefix = n[1].toUpperCase();
+    const value = parseInt(n[3], 10);
+    const cur = groups.get(prefix);
+    if (!cur || value > cur.max) groups.set(prefix, { max: value, sep: n[2] });
+  }
+  const out: string[] = [];
+  for (const [prefix, { max, sep }] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    if (!prefix.startsWith(letters)) continue;
+    const next = `${prefix}${sep}${max + 1}`;
+    if (digits && !String(max + 1).startsWith(digits)) continue;
+    if (taken.has(next.toUpperCase())) continue;
+    out.push(next);
+  }
+  return out.slice(0, 6);
+}
+
 export function sortByName<T extends { name: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.name.localeCompare(b.name, "fr", { numeric: true }));
 }
