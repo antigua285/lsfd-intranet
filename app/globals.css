@@ -12,11 +12,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Le site est conçu en clair (fonds blancs) : pas de bascule automatique en mode sombre, sinon le texte
+   hérité devenait gris clair sur fond blanc (questions et réponses d'examen illisibles). */
+:root {
+  color-scheme: light;
 }
 
 body {
