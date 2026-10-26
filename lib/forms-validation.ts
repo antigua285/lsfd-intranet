@@ -90,11 +90,12 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
     if (!label.ok) return label;
     const field: FormField = { id: f.id, type, label: label.value };
     if (answered && f.required === true) field.required = true;
-    if (f.width === "half" && type !== "long") field.width = "half";
+    if (f.width === "half" && type !== "long" && type !== "checkbox") field.width = "half";
 
-    if (type === "select") {
-      if (!Array.isArray(f.options) || f.options.length < 2 || f.options.length > MAX_OPTIONS) {
-        return fail(`« ${label.value} » : une liste de choix demande entre 2 et ${MAX_OPTIONS} choix.`);
+    if (type === "select" || type === "checkbox") {
+      const min = type === "select" ? 2 : 1;
+      if (!Array.isArray(f.options) || f.options.length < min || f.options.length > MAX_OPTIONS) {
+        return fail(`« ${label.value} » : ${type === "select" ? "une liste de choix" : "des cases à cocher"} demande entre ${min} et ${MAX_OPTIONS} choix.`);
       }
       const options: SelectOption[] = [];
       const optionIds = new Set<string>();
@@ -107,6 +108,11 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
         options.push({ id: opt.id, label: optLabel.value });
       }
       field.options = options;
+      if (type === "checkbox") {
+        field.multiple = f.multiple !== false;
+        const columns = Number(f.columns);
+        field.columns = ([1, 2, 3, 4] as const).find((c) => c === columns) ?? 2;
+      }
     }
     if (type === "feature") {
       if (!(FEATURE_KINDS as readonly unknown[]).includes(f.featureKind)) return fail(`« ${label.value} » : choisis un type de point.`);
@@ -134,7 +140,7 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
       source = { kind: "today" };
     } else if (src?.kind === "field" && typeof src.field === "string") {
       const from = fields.find((f) => f.id === src.field);
-      if (!from || !FIELD_META[from.type].answered || from.type === "feature") return fail("Champ source invalide.");
+      if (!from || !FIELD_META[from.type].answered || from.type === "feature" || from.type === "checkbox") return fail("Champ source invalide.");
       if (detail.type === "date" && from.type !== "date") return fail(`« ${detail.label} » attend un champ de type Date.`);
       if (detail.options && from.type !== "select") return fail(`« ${detail.label} » attend une liste de choix.`);
       if (!detail.options && detail.type !== "date" && from.type === "date") return fail(`« ${detail.label} » n'est pas une date.`);
@@ -215,6 +221,18 @@ export function parseAnswers(definition: FormDefinition, raw: unknown): AnswersR
       case "select":
         if (!field.options?.some((o) => o.id === clean)) errors[field.id] = "Choix invalide.";
         break;
+      case "checkbox": {
+        const ids = clean.split(",");
+        const known = new Set((field.options ?? []).map((o) => o.id));
+        if (ids.some((id) => !known.has(id)) || new Set(ids).size !== ids.length) errors[field.id] = "Choix invalide.";
+        else if (field.multiple === false && ids.length > 1) errors[field.id] = "Un seul choix possible.";
+        else {
+          // ordre des cases du formulaire, quel que soit l'ordre d'arrivée
+          answers[field.id] = (field.options ?? []).filter((o) => ids.includes(o.id)).map((o) => o.id).join(",");
+          continue;
+        }
+        break;
+      }
       case "feature":
         if (!UUID_PATTERN.test(clean)) errors[field.id] = "Point invalide.";
         break;

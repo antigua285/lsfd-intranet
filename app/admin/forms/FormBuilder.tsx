@@ -59,6 +59,15 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
         { id: newId("o"), label: "Option 2" },
       ];
     }
+    if (type === "checkbox") {
+      field.options = [
+        { id: newId("o"), label: "Option 1" },
+        { id: newId("o"), label: "Option 2" },
+        { id: newId("o"), label: "Option 3" },
+      ];
+      field.multiple = true;
+      field.columns = 2;
+    }
     if (type === "feature") field.featureKind = "hydrant";
     setFields((prev) => [...prev, field]);
   }
@@ -164,7 +173,7 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
               {FIELD_META[field.type].answered && (
                 <div className="flex gap-4 text-[12px]">
                   <label className="flex items-center gap-1"><input type="checkbox" checked={!!field.required} onChange={(e) => patchField(field.id, { required: e.target.checked })} /> Obligatoire</label>
-                  {field.type !== "long" && (
+                  {field.type !== "long" && field.type !== "checkbox" && (
                     <label className="flex items-center gap-1"><input type="checkbox" checked={field.width === "half"} onChange={(e) => patchField(field.id, { width: e.target.checked ? "half" : "full" })} /> Demi-largeur (2 par ligne)</label>
                   )}
                 </div>
@@ -181,14 +190,24 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
                   </select>
                 </label>
               )}
-              {field.type === "select" && (
+              {field.type === "checkbox" && (
+                <div className="flex flex-wrap items-center gap-4 text-[12px]">
+                  <label className="flex items-center gap-1"><input type="checkbox" checked={field.multiple !== false} onChange={(e) => patchField(field.id, { multiple: e.target.checked })} /> Plusieurs réponses possibles</label>
+                  <label className="flex items-center gap-1">Colonnes
+                    <select aria-label="Nombre de colonnes" className="border border-slate-300 rounded px-1 py-0.5" value={field.columns ?? 2} onChange={(e) => patchField(field.id, { columns: Number(e.target.value) as 1 | 2 | 3 | 4 })}>
+                      {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
+              {(field.type === "select" || field.type === "checkbox") && (
                 <div className="flex flex-col gap-1">
                   <p className="text-[12px]">Choix proposés</p>
                   {field.options?.map((opt) => (
                     <div key={opt.id} className="flex gap-2">
                       <input aria-label="Texte du choix" className={INPUT} value={opt.label} maxLength={80}
                         onChange={(e) => patchField(field.id, { options: field.options!.map((o) => (o.id === opt.id ? { ...o, label: e.target.value } : o)) })} />
-                      <button type="button" className={SMALL_BTN} disabled={(field.options?.length ?? 0) <= 2}
+                      <button type="button" className={SMALL_BTN} disabled={(field.options?.length ?? 0) <= (field.type === "select" ? 2 : 1)}
                         onClick={() => patchField(field.id, { options: field.options!.filter((o) => o.id !== opt.id) })}>Retirer</button>
                     </div>
                   ))}

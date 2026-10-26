@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Combobox, type ComboItem } from "@/components/Combobox";
-import { FIELD_META, type FormField } from "@/lib/forms-types";
+import { FIELD_META, checkedIds, type FormField } from "@/lib/forms-types";
 import { LIMITS } from "@/lib/forms-validation";
 import { splitAddress, suggestPlaces } from "@/lib/locations";
 import { submitFormAction } from "./actions";
@@ -82,6 +82,33 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
               {field.type !== "long" && ":"}
             </label>
           );
+          if (field.type === "checkbox") {
+            const checked = new Set(checkedIds(value));
+            const toggle = (id: string) => {
+              const next = new Set(field.multiple === false ? [] : checked);
+              if (checked.has(id)) next.delete(id);
+              else next.add(id);
+              set(field.id, (field.options ?? []).filter((o) => next.has(o.id)).map((o) => o.id).join(","));
+            };
+            return (
+              <fieldset key={field.id} data-testid="checkbox-group" aria-required={field.required} aria-invalid={!!error} className="border-0 p-0 m-0 min-w-0">
+                <legend className="font-bold p-0 mb-1.5">
+                  {field.label}
+                  {field.required && <span className="text-red-700" aria-hidden> *</span>}:
+                </legend>
+                <div className="grid gap-x-4 gap-y-1.5" style={{ gridTemplateColumns: `repeat(${field.columns ?? 2}, minmax(0, 1fr))` }}>
+                  {(field.options ?? []).map((o) => (
+                    <label key={o.id} className="flex items-start gap-2 cursor-pointer min-w-0">
+                      <input type="checkbox" className="mt-[3px] h-[14px] w-[14px] shrink-0 accent-[#0d2644]" checked={checked.has(o.id)} onChange={() => toggle(o.id)} />
+                      <span className="break-words min-w-0">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {field.multiple === false && <p className="text-[11px] text-slate-500 mt-1">Un seul choix possible.</p>}
+                {error && <p role="alert" className="text-[12px] text-red-700 mt-0.5">{error}</p>}
+              </fieldset>
+            );
+          }
           const half = field.width === "half";
           return (
             <div key={field.id} className={half ? "sm:w-[calc(50%-12px)] sm:inline-block" : ""} style={half ? { display: undefined } : undefined}>

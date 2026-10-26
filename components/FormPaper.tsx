@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useState } from "react";
-import { answerText, type FormContent, type FormField } from "@/lib/forms-types";
+import { answerText, checkedIds, type FormContent, type FormField } from "@/lib/forms-types";
 
 /** Format Letter (8,5 × 11 pouces) à 96 dpi : sert au PDF et au PNG. */
 export const PAPER_WIDTH = 816;
@@ -113,6 +113,31 @@ function PaperRow({ row, answers, labels }: { row: Row; answers: Record<string, 
     return (
       <div data-row style={{ fontSize: 12, fontStyle: "italic", margin: "4px 0 10px", whiteSpace: "pre-wrap" }}>
         {first.label}
+      </div>
+    );
+  }
+  if (first.type === "checkbox") {
+    const checked = new Set(checkedIds(answers[first.id]));
+    return (
+      <div data-row style={{ margin: "8px 0 12px" }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{first.label}:</div>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${first.columns ?? 2}, minmax(0, 1fr))`, columnGap: 16, rowGap: 8 }}>
+          {(first.options ?? []).map((o) => (
+            <div key={o.id} data-checkbox-option style={{ display: "flex", alignItems: "flex-start", gap: 7, minWidth: 0 }}>
+              <span
+                aria-hidden
+                style={{ width: 13, height: 13, flexShrink: 0, border: `1px solid ${INK}`, marginTop: 2, boxSizing: "border-box", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+              >
+                {checked.has(o.id) && (
+                  <svg width="11" height="11" viewBox="0 0 11 11" style={{ display: "block" }}>
+                    <path d="M1.5 5.8 4.3 8.6 9.6 2.2" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="square" />
+                  </svg>
+                )}
+              </span>
+              <span style={{ overflowWrap: "anywhere" }} data-checked={checked.has(o.id) ? "true" : "false"}>{o.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

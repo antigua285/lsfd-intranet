@@ -4,7 +4,7 @@
  */
 import type { FeatureKind } from "./map-types";
 
-export const FIELD_TYPES = ["short", "long", "date", "select", "location", "feature", "heading", "note"] as const;
+export const FIELD_TYPES = ["short", "long", "date", "select", "checkbox", "location", "feature", "heading", "note"] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 export const FIELD_META: Record<FieldType, { label: string; hint: string; answered: boolean }> = {
@@ -12,6 +12,7 @@ export const FIELD_META: Record<FieldType, { label: string; hint: string; answer
   long: { label: "Réponse longue", hint: "Paragraphe", answered: true },
   date: { label: "Date", hint: "Calendrier", answered: true },
   select: { label: "Liste de choix", hint: "Un choix parmi plusieurs", answered: true },
+  checkbox: { label: "Cases à cocher", hint: "Cases comme sur le papier : plusieurs réponses ou une seule", answered: true },
   location: { label: "Localisation", hint: "Rues et quartiers de Los Santos, avec suggestions", answered: true },
   feature: { label: "Point de la carte", hint: "Une borne, une station… choisie dans la carte", answered: true },
   heading: { label: "Titre de section", hint: "Texte en gras, sans réponse", answered: false },
@@ -28,6 +29,10 @@ export type FormField = {
   /** "half" : deux champs côte à côte, comme « City » et « Zip » sur le PDF officiel. */
   width?: "full" | "half";
   options?: SelectOption[];
+  /** Cases à cocher : true = plusieurs réponses possibles (par défaut), false = une seule. */
+  multiple?: boolean;
+  /** Cases à cocher : nombre de colonnes sur le papier (1 à 4, 2 par défaut). */
+  columns?: 1 | 2 | 3 | 4;
   featureKind?: FeatureKind;
 };
 
@@ -101,6 +106,11 @@ export function formatDate(iso: string): string {
   return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
 }
 
+/** Réponse d'un champ « cases à cocher » : identifiants des cases cochées, séparés par des virgules. */
+export function checkedIds(raw: string | undefined): string[] {
+  return raw ? raw.split(",").filter(Boolean) : [];
+}
+
 /** Texte à imprimer pour la réponse d'un champ. */
 export function answerText(field: FormField, answers: Record<string, string>, labels: Record<string, string>): string {
   const raw = answers[field.id];
@@ -110,6 +120,11 @@ export function answerText(field: FormField, answers: Record<string, string>, la
       return formatDate(raw);
     case "select":
       return field.options?.find((o) => o.id === raw)?.label ?? "";
+    case "checkbox":
+      return checkedIds(raw)
+        .map((id) => field.options?.find((o) => o.id === id)?.label ?? "")
+        .filter(Boolean)
+        .join(", ");
     case "feature":
       return labels[field.id] ?? "";
     default:
