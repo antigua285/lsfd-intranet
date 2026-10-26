@@ -141,4 +141,59 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
+  // Formation : examens sur mesure. La clé d'accès n'est stockée que hachée.
+  `CREATE TABLE IF NOT EXISTS exams (
+    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title             text NOT NULL,
+    description       text NOT NULL DEFAULT '',
+    duration_minutes  integer,
+    threshold_percent integer,
+    max_attempts      integer NOT NULL DEFAULT 1,
+    published         boolean NOT NULL DEFAULT false,
+    key_hash          text,
+    questions         jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at        timestamptz NOT NULL DEFAULT now(),
+    updated_at        timestamptz NOT NULL DEFAULT now()
+  )`,
+  // Images des questions (base64) : pas de disque sur Vercel.
+  `CREATE TABLE IF NOT EXISTS exam_images (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    mime       text NOT NULL,
+    data       text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  // Un passage d'examen. exam_snapshot = copie de l'examen tel qu'il était au démarrage
+  // (avec les bonnes réponses : ne JAMAIS l'envoyer tel quel au candidat).
+  `CREATE TABLE IF NOT EXISTS exam_attempts (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id      uuid REFERENCES exams(id) ON DELETE SET NULL,
+    exam_title   text NOT NULL,
+    user_id      uuid REFERENCES users(id) ON DELETE SET NULL,
+    candidate    jsonb NOT NULL,
+    snapshot     jsonb NOT NULL,
+    answers      jsonb NOT NULL DEFAULT '{}'::jsonb,
+    status       text NOT NULL DEFAULT 'in_progress',
+    started_at   timestamptz NOT NULL DEFAULT now(),
+    deadline     timestamptz,
+    submitted_at timestamptz,
+    grades       jsonb NOT NULL DEFAULT '{}'::jsonb,
+    verdict      text,
+    comment      text NOT NULL DEFAULT '',
+    graded_by    uuid REFERENCES users(id) ON DELETE SET NULL,
+    grader_name  text NOT NULL DEFAULT '',
+    sent_at      timestamptz
+  )`,
+  `CREATE INDEX IF NOT EXISTS exam_attempts_user_idx ON exam_attempts (user_id, started_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS exam_attempts_status_idx ON exam_attempts (status, submitted_at DESC)`,
+  // Clé d'accès lisible par la TD (transmission rapide). Les anciens examens n'ont que key_hash.
+  `ALTER TABLE exams ADD COLUMN IF NOT EXISTS access_key text`,
+  // Qui peut passer quel examen (assigné par la TD ou un modérateur).
+  `CREATE TABLE IF NOT EXISTS exam_assignments (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id     uuid NOT NULL REFERENCES exams(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assigned_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (exam_id, user_id)
+  )`,
 ];

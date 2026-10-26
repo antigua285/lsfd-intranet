@@ -6,9 +6,6 @@ export type CardInput = { topic: string; question: string; answer: string };
 
 export const CARD_LIMITS = { topic: 40, question: 400, answer: 1500 };
 
-/** Rôle des modérateurs de la formation : les détenteurs de ce flag gèrent les cartes (et plus tard examens et carnets). */
-export const TRAINING_FLAG = "TD";
-
 export function isMissingFlashcardsTableError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
   return e?.code === "42P01" || /relation "?flashcards"? does not exist/i.test(e?.message ?? "");

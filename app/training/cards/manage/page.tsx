@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext } from "@/lib/access";
-import { TRAINING_FLAG, isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
+import { getAccessContext, isTrainer } from "@/lib/access";
+import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
 import { CardManager } from "./CardManager";
 
 export const metadata = { title: "Gérer les cartes | LSFD Intranet" };
@@ -23,7 +23,7 @@ export default function ManageCardsPage() {
 async function Content() {
   const ctx = await getAccessContext();
   if (!ctx) redirect("/login");
-  if (!ctx.user.isAdmin && !ctx.flags.includes(TRAINING_FLAG)) notFound();
+  if (!isTrainer(ctx)) notFound();
   let cards: Flashcard[] = [];
   try {
     cards = await listCards();

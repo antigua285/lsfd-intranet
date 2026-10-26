@@ -1,19 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAccessContext } from "@/lib/access";
-import { TRAINING_FLAG, createCard, deleteCard, isMissingFlashcardsTableError, parseCardInput, updateCard, type Flashcard } from "@/lib/flashcards";
+import { assertTrainer } from "@/lib/access";
+import { createCard, deleteCard, isMissingFlashcardsTableError, parseCardInput, updateCard, type Flashcard } from "@/lib/flashcards";
 import { UUID_PATTERN } from "@/lib/validation";
 
 export type CardResult = { ok: true; card?: Flashcard } | { ok: false; error: string };
 
 const MISSING = "La base n'est pas à jour : un modérateur doit lancer `npm run db:setup`.";
-
-/** Modérateurs et détenteurs du flag TD : relu en base à chaque appel. */
-async function assertTrainer() {
-  const ctx = await getAccessContext();
-  if (!ctx || (!ctx.user.isAdmin && !ctx.flags.includes(TRAINING_FLAG))) throw new Error("Accès refusé.");
-}
 
 function refresh() {
   revalidatePath("/training/cards");

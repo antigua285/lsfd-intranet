@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAccessContext } from "@/lib/access";
-import { TRAINING_FLAG, isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
+import { getAccessContext, isTrainer } from "@/lib/access";
+import { isMissingFlashcardsTableError, listCards, type Flashcard } from "@/lib/flashcards";
 import { StudyDeck } from "./StudyDeck";
 
 export const metadata = { title: "Cartes de révision | LSFD Intranet" };
@@ -43,6 +43,6 @@ async function Content() {
       </div>
     );
   }
-  const canEdit = ctx.user.isAdmin || ctx.flags.includes(TRAINING_FLAG);
+  const canEdit = isTrainer(ctx);
   return <StudyDeck initialCards={cards} canEdit={canEdit} />;
 }

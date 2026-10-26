@@ -167,3 +167,16 @@ export async function getVisibleModules() {
     modulesForPath(mod.link).every((m) => canSee(ctx, ctx.rules.get(moduleKey(m))?.flags ?? []));
   return orderModules(APP_MODULES, ctx.rules).filter((mod) => (modulesForPath(mod.link).length ? open(mod) : canSee(ctx, ctx.rules.get(moduleKey(mod))?.flags ?? [])));
 }
+
+/** Formateurs : modérateurs ou détenteurs du flag TD (relu en base à chaque appel, pour les actions serveur). */
+export const TRAINER_FLAG = "TD";
+
+export function isTrainer(ctx: AccessContext): boolean {
+  return ctx.user.isAdmin || ctx.flags.includes(TRAINER_FLAG);
+}
+
+export async function assertTrainer(): Promise<AccessContext> {
+  const ctx = await getAccessContext();
+  if (!ctx || !isTrainer(ctx)) throw new Error("Accès refusé.");
+  return ctx;
+}
