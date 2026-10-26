@@ -4,6 +4,7 @@ import {
   FIELD_META,
   FIELD_TYPES,
   formatDate,
+  parseImageUrl,
   type FormAction,
   type FormDefinition,
   type FormField,
@@ -90,7 +91,7 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
     if (!label.ok) return label;
     const field: FormField = { id: f.id, type, label: label.value };
     if (answered && f.required === true) field.required = true;
-    if (f.width === "half" && type !== "long" && type !== "checkbox") field.width = "half";
+    if (f.width === "half" && type !== "long" && type !== "checkbox" && type !== "image") field.width = "half";
 
     if (type === "select" || type === "checkbox") {
       const min = type === "select" ? 2 : 1;
@@ -140,7 +141,7 @@ export function parseFormInput(raw: unknown): Result<FormInput> {
       source = { kind: "today" };
     } else if (src?.kind === "field" && typeof src.field === "string") {
       const from = fields.find((f) => f.id === src.field);
-      if (!from || !FIELD_META[from.type].answered || from.type === "feature" || from.type === "checkbox") return fail("Champ source invalide.");
+      if (!from || !FIELD_META[from.type].answered || from.type === "feature" || from.type === "checkbox" || from.type === "image") return fail("Champ source invalide.");
       if (detail.type === "date" && from.type !== "date") return fail(`« ${detail.label} » attend un champ de type Date.`);
       if (detail.options && from.type !== "select") return fail(`« ${detail.label} » attend une liste de choix.`);
       if (!detail.options && detail.type !== "date" && from.type === "date") return fail(`« ${detail.label} » n'est pas une date.`);
@@ -221,6 +222,15 @@ export function parseAnswers(definition: FormDefinition, raw: unknown): AnswersR
       case "select":
         if (!field.options?.some((o) => o.id === clean)) errors[field.id] = "Choix invalide.";
         break;
+      case "image": {
+        const url = parseImageUrl(clean);
+        if (!url.ok) errors[field.id] = url.error;
+        else {
+          answers[field.id] = url.value;
+          continue;
+        }
+        break;
+      }
       case "checkbox": {
         const ids = clean.split(",");
         const known = new Set((field.options ?? []).map((o) => o.id));

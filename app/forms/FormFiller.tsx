@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Combobox, type ComboItem } from "@/components/Combobox";
-import { FIELD_META, checkedIds, type FormField } from "@/lib/forms-types";
+import { FIELD_META, checkedIds, parseImageUrl, type FormField } from "@/lib/forms-types";
 import { LIMITS } from "@/lib/forms-validation";
 import { splitAddress, suggestPlaces } from "@/lib/locations";
 import { submitFormAction } from "./actions";
@@ -108,6 +108,9 @@ export function FormFiller({ formId, fields, pointOptions }: Props) {
                 {error && <p role="alert" className="text-[12px] text-red-700 mt-0.5">{error}</p>}
               </fieldset>
             );
+          }
+          if (field.type === "image") {
+            return <ImageField key={field.id} field={field} value={value} error={error} onChange={(v) => set(field.id, v)} />;
           }
           const half = field.width === "half";
           return (
@@ -233,5 +236,31 @@ function PointPicker({
       items={items}
       onPick={(item) => onPick(item.key)}
     />
+  );
+}
+
+/** Champ « image » : on colle un lien imgur / imgbb, avec un aperçu pour vérifier qu'il fonctionne. */
+function ImageField({ field, value, error, onChange }: { field: FormField; value: string; error?: string; onChange: (v: string) => void }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const check = value.trim() ? parseImageUrl(value) : null;
+  const problem = error || (check && !check.ok ? check.error : "");
+  const preview = check && check.ok ? check.value : null;
+  const inputId = `field-${field.id}`;
+  return (
+    <div data-testid="image-field">
+      <label htmlFor={inputId} className="block">
+        {field.label}
+        {field.required && <span className="text-red-700" aria-hidden> *</span>}:
+      </label>
+      <input id={inputId} className={LINE} value={value} maxLength={300} inputMode="url" placeholder="Lien direct : https://i.imgur.com/… ou https://i.ibb.co/…"
+        aria-invalid={!!problem} aria-required={field.required} onChange={(e) => onChange(e.target.value)} />
+      {problem && <p role="alert" className="text-[12px] text-red-700 mt-0.5">{problem}</p>}
+      {preview && failed !== preview && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview} alt="Aperçu" referrerPolicy="no-referrer" onError={() => setFailed(preview)} className="mt-2 max-h-56 max-w-full border border-slate-300" />
+      )}
+      {preview && failed === preview && <p role="alert" className="text-[12px] text-red-700 mt-0.5">Impossible de charger cette image : vérifie que le lien est public et direct.</p>}
+      <p className="text-[11px] text-slate-500 mt-0.5">L&apos;image n&apos;est pas envoyée sur le site : seul le lien est conservé.</p>
+    </div>
   );
 }

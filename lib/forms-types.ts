@@ -4,7 +4,7 @@
  */
 import type { FeatureKind } from "./map-types";
 
-export const FIELD_TYPES = ["short", "long", "date", "select", "checkbox", "location", "feature", "heading", "note"] as const;
+export const FIELD_TYPES = ["short", "long", "date", "select", "checkbox", "image", "location", "feature", "heading", "note"] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 export const FIELD_META: Record<FieldType, { label: string; hint: string; answered: boolean }> = {
@@ -13,6 +13,7 @@ export const FIELD_META: Record<FieldType, { label: string; hint: string; answer
   date: { label: "Date", hint: "Calendrier", answered: true },
   select: { label: "Liste de choix", hint: "Un choix parmi plusieurs", answered: true },
   checkbox: { label: "Cases à cocher", hint: "Cases comme sur le papier : plusieurs réponses ou une seule", answered: true },
+  image: { label: "Image (lien)", hint: "Lien direct imgur ou imgbb : l'image n'est pas stockée sur le site", answered: true },
   location: { label: "Localisation", hint: "Rues et quartiers de Los Santos, avec suggestions", answered: true },
   feature: { label: "Point de la carte", hint: "Une borne, une station… choisie dans la carte", answered: true },
   heading: { label: "Titre de section", hint: "Texte en gras, sans réponse", answered: false },
@@ -106,6 +107,29 @@ export function formatDate(iso: string): string {
   return m ? `${m[2]}/${m[3]}/${m[1]}` : iso;
 }
 
+/** Hébergeurs d'images acceptés : on ne stocke qu'un lien, jamais le fichier. */
+export const ALLOWED_IMAGE_HOSTS = ["i.imgur.com", "i.ibb.co"] as const;
+
+/** Vérifie un lien d'image (https, hébergeur autorisé, lien direct vers un fichier image). */
+export function parseImageUrl(raw: string): { ok: true; value: string } | { ok: false; error: string } {
+  const text = raw.trim();
+  if (text.length > 300 || /\s/.test(text)) return { ok: false, error: "Lien invalide." };
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return { ok: false, error: "Lien invalide : colle l'adresse complète de l'image (https://…)." };
+  }
+  if (url.protocol !== "https:" || url.username || url.password || url.port) return { ok: false, error: "Le lien doit commencer par https://." };
+  if (!(ALLOWED_IMAGE_HOSTS as readonly string[]).includes(url.hostname.toLowerCase())) {
+    return { ok: false, error: "Lien non accepté : utilise un lien direct imgur (i.imgur.com/….png) ou imgbb (i.ibb.co/…)." };
+  }
+  if (!/\.(png|jpe?g|gif|webp)$/i.test(url.pathname)) {
+    return { ok: false, error: "Utilise le lien direct de l'image (qui finit par .png, .jpg, .gif ou .webp)." };
+  }
+  return { ok: true, value: url.href };
+}
+
 /** Réponse d'un champ « cases à cocher » : identifiants des cases cochées, séparés par des virgules. */
 export function checkedIds(raw: string | undefined): string[] {
   return raw ? raw.split(",").filter(Boolean) : [];
@@ -127,6 +151,8 @@ export function answerText(field: FormField, answers: Record<string, string>, la
         .join(", ");
     case "feature":
       return labels[field.id] ?? "";
+    case "image":
+      return ""; // une image ne se résume pas en texte
     default:
       return raw;
   }

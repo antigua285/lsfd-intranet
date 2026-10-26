@@ -184,7 +184,7 @@ export async function deleteSubmission(id: string): Promise<boolean> {
 function buildSummary(content: FormContent, answers: Record<string, string>, labels: Record<string, string>): string {
   const parts: string[] = [];
   for (const field of content.definition.fields) {
-    if (!FIELD_META[field.type].answered || field.type === "long") continue;
+    if (!FIELD_META[field.type].answered || field.type === "long" || field.type === "image") continue;
     const value = answerText(field, answers, labels);
     if (value) parts.push(value);
     if (parts.length >= 3) break;

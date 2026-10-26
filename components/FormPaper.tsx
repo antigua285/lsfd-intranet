@@ -12,6 +12,7 @@ type Props = {
   content: FormContent;
   answers?: Record<string, string>;
   labels?: Record<string, string>;
+  testId?: string;
 };
 
 type Row = FormField[];
@@ -31,6 +32,8 @@ function toRows(fields: FormField[]): Row[] {
 }
 
 const INK = "#000";
+/** Hauteur maximale d'une image sur le papier : elle tient toujours sur une page. */
+const IMAGE_MAX_HEIGHT = 420;
 
 /**
  * Le « papier officiel » : en-tête (sceau + titre + sous-titre), sections en gras, champs
@@ -38,7 +41,7 @@ const INK = "#000";
  * Les styles sont écrits en ligne pour que l'export soit identique à l'écran.
  */
 export const FormPaper = forwardRef<HTMLDivElement, Props>(function FormPaper(
-  { content, answers = {}, labels = {} },
+  { content, answers = {}, labels = {}, testId = "form-paper" },
   ref
 ) {
   const [sealOk, setSealOk] = useState(true);
@@ -47,7 +50,7 @@ export const FormPaper = forwardRef<HTMLDivElement, Props>(function FormPaper(
   return (
     <div
       ref={ref}
-      data-testid="form-paper"
+      data-testid={testId}
       style={{
         width: PAPER_WIDTH,
         minHeight: PAPER_HEIGHT,
@@ -113,6 +116,20 @@ function PaperRow({ row, answers, labels }: { row: Row; answers: Record<string, 
     return (
       <div data-row style={{ fontSize: 12, fontStyle: "italic", margin: "4px 0 10px", whiteSpace: "pre-wrap" }}>
         {first.label}
+      </div>
+    );
+  }
+  if (first.type === "image") {
+    const src = answers[first.id];
+    return (
+      <div data-row style={{ margin: "8px 0 12px" }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{first.label}:</div>
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={src} alt={first.label} referrerPolicy="no-referrer" style={{ display: "block", maxWidth: "100%", maxHeight: IMAGE_MAX_HEIGHT, objectFit: "contain" }} />
+        ) : (
+          <div style={{ height: 96, border: `1px solid ${INK}` }} />
+        )}
       </div>
     );
   }

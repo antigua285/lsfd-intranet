@@ -173,7 +173,7 @@ export function FormBuilder({ formId, initial, allFlags }: Props) {
               {FIELD_META[field.type].answered && (
                 <div className="flex gap-4 text-[12px]">
                   <label className="flex items-center gap-1"><input type="checkbox" checked={!!field.required} onChange={(e) => patchField(field.id, { required: e.target.checked })} /> Obligatoire</label>
-                  {field.type !== "long" && field.type !== "checkbox" && (
+                  {field.type !== "long" && field.type !== "checkbox" && field.type !== "image" && (
                     <label className="flex items-center gap-1"><input type="checkbox" checked={field.width === "half"} onChange={(e) => patchField(field.id, { width: e.target.checked ? "half" : "full" })} /> Demi-largeur (2 par ligne)</label>
                   )}
                 </div>
