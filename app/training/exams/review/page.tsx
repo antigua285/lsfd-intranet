@@ -77,7 +77,7 @@ async function Content({ searchParams }: { searchParams: SP }) {
                     {r.submittedAt ? new Date(r.submittedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—"}
                   </Link>
                 </td>
-                <td className="p-2">{r.examTitle}</td>
+                <td className="p-2">{r.examTitle}{r.kind === "practical" && <span className="ml-2 text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 align-middle">Pratique</span>}</td>
                 <td className="p-2">{r.candidate.name} <span className="text-slate-500">({r.candidate.grade})</span></td>
                 <td className="p-2">
                   <span className={`text-[11px] font-bold rounded px-2 py-0.5 ${r.status === "submitted" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{STATUS_LABEL[r.status]}</span>

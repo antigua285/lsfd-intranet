@@ -192,6 +192,8 @@ export const SCHEMA_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS exam_attempts_user_idx ON exam_attempts (user_id, started_at DESC)`,
   `CREATE INDEX IF NOT EXISTS exam_attempts_status_idx ON exam_attempts (status, submitted_at DESC)`,
   `ALTER TABLE exams ADD COLUMN IF NOT EXISTS manage_flags text[] NOT NULL DEFAULT '{}'`,
+  // Examens pratiques : remplis par l'instructeur (kind = 'practical'), sans clé ni chronomètre.
+  `ALTER TABLE exams ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'written'`,
   // Clé d'accès lisible par la TD (transmission rapide). Les anciens examens n'ont que key_hash.
   `ALTER TABLE exams ADD COLUMN IF NOT EXISTS access_key text`,
   // Qui peut passer quel examen (assigné par la TD ou un modérateur).

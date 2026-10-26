@@ -42,6 +42,7 @@ async function Content() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap gap-4 text-[13px] font-bold">
         <LinkButton href="/training/exams/mine" testId="btn-mine">Mes résultats</LinkButton>
+        {isTrainer(ctx) && <LinkButton href="/training/exams/practical" testId="btn-practical">Examens pratiques</LinkButton>}
         {isTrainer(ctx) && <LinkButton href="/training/td" variant="primary" testId="btn-td">Espace TD</LinkButton>}
       </div>
       {exams.length === 0 ? (

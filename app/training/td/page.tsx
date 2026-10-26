@@ -62,18 +62,19 @@ async function Content() {
   if (!ctx) redirect("/login");
   if (!isTrainer(ctx)) notFound();
 
-  const [toGrade, exams, notebooks, cards] = await Promise.all([
+  const [toGrade, exams, notebooks, practicalCount, cards] = await Promise.all([
     safe(async () => {
       await closeExpiredAttempts();
       const [attempts, flagsByExam] = await Promise.all([listAttempts({ status: "submitted" }), listExamManageFlags()]);
       return attempts.filter((a) => canManageWith(ctx, a.examId ? flagsByExam.get(a.examId) ?? [] : [])).length;
     }),
-    safe(async () => (await listExams()).filter((e) => canManageWith(ctx, e.manageFlags))),
+    safe(async () => (await listExams()).filter((e) => e.kind !== "practical" && canManageWith(ctx, e.manageFlags))),
     safe(async () => {
       await syncNotebooks();
       const [list, template] = await Promise.all([listNotebooks(false), getTemplate()]);
       return { total: list.length, eligible: list.filter((n) => computeProgress(template, n.checked).eligible).length };
     }),
+    safe(async () => (await listExams()).filter((e) => e.kind === "practical" && e.published && canManageWith(ctx, e.manageFlags)).length),
     safe(async () => cardsFor(ctx, await listCards()).filter((c) => c.editable)),
   ]);
 
@@ -94,6 +95,14 @@ async function Content() {
         count={exams ? exams.length : null}
         countLabel="examens"
         links={[{ href: "/training/exams/manage", label: "Clés et assignation" }, ...(ctx.user.isAdmin ? [{ href: "/admin/exams", label: "Créer ou modifier les examens" }] : [])]}
+      />
+      <Block
+        testId="td-practical"
+        title="Examens pratiques"
+        desc="Ouvre la grille d'un examen pratique pour un membre, note chaque critère, puis envoie le résultat."
+        count={practicalCount}
+        countLabel="examens pratiques"
+        links={[{ href: "/training/exams/practical", label: "Évaluer un membre" }, { href: "/training/exams/review", label: "Évaluations en cours" }]}
       />
       <Block
         testId="td-probation"

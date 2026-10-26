@@ -25,7 +25,7 @@ export async function startExamAction(examId: string, key: string): Promise<Star
   try {
     await closeExpiredAttempts();
     const exam = await getExam(examId);
-    if (!exam || !exam.published || !exam.hasKey || exam.questions.length === 0) return { ok: false, error: "Cet examen n'est pas disponible." };
+    if (!exam || exam.kind === "practical" || !exam.published || !exam.hasKey || exam.questions.length === 0) return { ok: false, error: "Cet examen n'est pas disponible." };
     if (!(await isAssigned(examId, user.id))) return { ok: false, error: "Cet examen ne t'est pas assigné." };
     const { total, inProgressId } = await countAttempts(examId, user.id);
     if (inProgressId) return { ok: true, attemptId: inProgressId }; // reprise : la clé a déjà été donnée

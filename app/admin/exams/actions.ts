@@ -31,7 +31,7 @@ export async function saveExamAction(id: string | null, raw: unknown): Promise<S
       existing = await getExam(id);
       if (!existing) return { ok: false, error: "Cet examen n'existe plus." };
     }
-    if (input.published && !input.newKey && !existing?.hasKey) return { ok: false, error: "Définis une clé d'accès avant de publier l'examen." };
+    if (input.kind === "written" && input.published && !input.newKey && !existing?.hasKey) return { ok: false, error: "Définis une clé d'accès avant de publier l'examen." };
     if (input.published && input.questions.length === 0) return { ok: false, error: "Ajoute au moins une question avant de publier." };
     if (id === null) {
       const created = await createExam(input);

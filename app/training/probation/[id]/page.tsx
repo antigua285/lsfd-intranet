@@ -1,10 +1,14 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { getUserById, type PublicUser } from "@/lib/users";
 import { getUserFlags } from "@/lib/access";
 import { notFound, redirect } from "next/navigation";
-import { getAccessContext, isTrainer } from "@/lib/access";
+import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
+import { closeExpiredAttempts, isMissingExamsTableError, listAttemptsByUser, listExamManageFlags, listExams } from "@/lib/exams";
+import { EXAM_KIND_LABEL, VERDICT_LABEL, type AttemptSummary } from "@/lib/exams-types";
+import { StartPractical, type PracticalExam } from "../../exams/practical/StartPractical";
 import { UUID_PATTERN } from "@/lib/validation";
 import { getNotebook, getTemplate, isMissingProbationTableError, listComments, type Comment, type NotebookRow, type TemplateCategory } from "@/lib/probation";
 import { NotebookView } from "./NotebookView";
@@ -50,6 +54,9 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       profile = null;
     }
   }
+  // Examens du membre (écrits et pratiques), centralisés dans son carnet. Le membre ne voit que les résultats envoyés ;
+  // un formateur ne voit que les examens qu'il a le droit de gérer.
+  const examsSection = nb.userId ? await loadNotebookExams(ctx, nb.userId, trainer && !archived && nb.userId !== ctx.user.id) : null;
   return (
     <>
       <Breadcrumb
@@ -70,6 +77,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
         currentUserId={ctx.user.id}
         isAdmin={ctx.user.isAdmin}
       />
+      {examsSection}
     </>
   );
 }
@@ -106,6 +114,66 @@ function ProfileHeader({ name, profile, flags, startedAt }: { name: string; prof
         </dl>
         {!profile && <p className="text-[12px] text-slate-400 mt-1">Le compte n&apos;existe plus : seules les informations du carnet sont disponibles.</p>}
       </div>
+    </section>
+  );
+}
+
+type Ctx = NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
+
+async function loadNotebookExams(ctx: Ctx, userId: string, canStart: boolean) {
+  let attempts: AttemptSummary[] = [];
+  let flagsByExam = new Map<string, string[]>();
+  let practical: PracticalExam[] = [];
+  let target: { id: string; label: string } | null = null;
+  try {
+    await closeExpiredAttempts();
+    [attempts, flagsByExam] = await Promise.all([listAttemptsByUser(userId), listExamManageFlags()]);
+    if (canStart) {
+      practical = (await listExams())
+        .filter((e) => e.kind === "practical" && e.published && e.questions.length > 0 && canManageWith(ctx, e.manageFlags))
+        .map((e) => ({ id: e.id, title: e.title, criteria: e.questions.length }));
+      const u = await getUserById(userId);
+      if (u) target = { id: u.id, label: `${u.firstName} ${u.lastName}` };
+    }
+  } catch (error) {
+    if (!isMissingExamsTableError(error)) throw error;
+    return null; // base pas encore à jour : pas de section
+  }
+  const own = userId === ctx.user.id;
+  const rows = attempts.filter((a) => {
+    if (a.status === "in_progress") return false;
+    if (own && !ctx.user.isAdmin) return a.status === "sent";
+    return canManageWith(ctx, a.examId ? flagsByExam.get(a.examId) ?? [] : []);
+  });
+  return (
+    <section data-testid="notebook-exams" aria-label="Examens" className="mt-6 mb-10 border border-slate-200 rounded-lg p-4">
+      <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-600 mb-3">Examens</h2>
+      {rows.length === 0 ? (
+        <p className="text-[13px] text-slate-500">Aucun examen pour le moment.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {rows.map((a) => (
+            <li key={a.id} data-testid="notebook-exam">
+              <Link href={own && !ctx.user.isAdmin ? `/training/exams/attempt/${a.id}` : `/training/exams/review/${a.id}`} className="flex items-center gap-3 border border-slate-200 rounded px-3 py-2 hover:bg-slate-50">
+                <span className="flex-1 min-w-0 text-[14px] font-bold text-slate-800 truncate">{a.examTitle}</span>
+                <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded px-1.5 py-0.5">{EXAM_KIND_LABEL[a.kind]}</span>
+                <span className="text-[12px] text-slate-500">{new Date(a.sentAt ?? a.submittedAt ?? a.startedAt).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}</span>
+                {a.status === "sent" && a.verdict ? (
+                  <span className={`text-[11px] font-bold rounded px-2 py-0.5 ${a.verdict === "pass" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{VERDICT_LABEL[a.verdict]}</span>
+                ) : (
+                  <span className="text-[11px] text-amber-700 font-bold">{a.kind === "practical" ? "Évaluation en cours" : "À corriger"}</span>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canStart && target && practical.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <p className="text-[12px] font-bold uppercase tracking-wide text-slate-600 mb-2">Évaluer ce membre (examen pratique)</p>
+          <StartPractical exams={practical} fixedUser={target} />
+        </div>
+      )}
     </section>
   );
 }

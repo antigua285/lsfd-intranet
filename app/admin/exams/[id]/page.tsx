@@ -46,10 +46,10 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   } catch (error) {
     if (!isMissingAccessTableError(error)) throw error;
   }
-  const initial = exam ?? { title: "Nouvel examen", description: "", durationMinutes: null, thresholdPercent: null, maxAttempts: 1, published: false, hasKey: false, manageFlags: [], currentKey: null, questions: [] };
+  const initial = exam ?? { title: "Nouvel examen", description: "", durationMinutes: null, thresholdPercent: null, maxAttempts: 1, published: false, hasKey: false, manageFlags: [], kind: "written" as const, currentKey: null, questions: [] };
   return (
     <div className="mt-3">
-      <ExamBuilder key={exam?.id ?? "new"} examId={exam?.id ?? null} initial={{ ...initial, currentKey }} allFlags={allFlags.map((f) => ({ code: f.code, name: f.name }))} />
+      <ExamBuilder key={exam?.id ?? "new"} examId={exam?.id ?? null} initial={{ ...initial, currentKey, questionsCount: initial.questions.length }} allFlags={allFlags.map((f) => ({ code: f.code, name: f.name }))} />
     </div>
   );
 }

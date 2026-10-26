@@ -4,6 +4,7 @@ import {
   QUESTION_TYPES,
   isChoice,
   type AnswerValue,
+  type ExamKind,
   type ExamOption,
   type ExamQuestion,
   type ExamSnapshot,
@@ -46,6 +47,7 @@ export type ExamInput = {
   thresholdPercent: number | null;
   maxAttempts: number;
   published: boolean;
+  kind: ExamKind;
   /** Flags des TD autorisés à gérer / corriger l'examen (vide = toute la TD). */
   manageFlags: string[];
   questions: ExamQuestion[];
@@ -67,6 +69,7 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
   if (!threshold.ok) return threshold;
   const attempts = intOrNull(input.maxAttempts ?? 1, "Le nombre de tentatives", 1, 20);
   if (!attempts.ok) return attempts;
+  const kind: ExamKind = input.kind === "practical" ? "practical" : "written";
   const manageFlags = parseFlagCodes(input.manageFlags);
   if (!manageFlags.ok) return manageFlags;
 
@@ -102,7 +105,11 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
       if (typeof q.imageId !== "string" || !UUID_PATTERN.test(q.imageId)) return fail(`${label} : image invalide.`);
       imageId = q.imageId;
     }
+    if ((kind === "practical") !== (type === "criterion")) {
+      return fail(kind === "practical" ? `${label} : un examen pratique ne contient que des critères pratiques.` : `${label} : le type « critère pratique » est réservé aux examens pratiques.`);
+    }
     const question: ExamQuestion = { id: q.id, type, prompt: prompt.value, situation: situation.value, imageId, points: pts.value };
+    if (type === "criterion" && q.eliminatory === true) question.eliminatory = true;
     if (isChoice(type)) {
       if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > EXAM_LIMITS.options) {
         return fail(`${label} : prévois entre 2 et ${EXAM_LIMITS.options} choix.`);
@@ -130,13 +137,14 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
     value: {
       title: title.value,
       description: description.value,
-      durationMinutes: duration.value,
+      durationMinutes: kind === "practical" ? null : duration.value,
       thresholdPercent: threshold.value,
-      maxAttempts: attempts.value ?? 1,
+      maxAttempts: kind === "practical" ? 1 : attempts.value ?? 1,
       published: input.published === true,
+      kind,
       manageFlags: manageFlags.value,
       questions,
-      newKey,
+      newKey: kind === "practical" ? "" : newKey,
     },
   };
 }

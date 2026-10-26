@@ -16,14 +16,14 @@ import type { ExamInput } from "./exams-validation";
 
 export function isMissingExamsTableError(error: unknown): boolean {
   const e = error as { code?: string; message?: string } | null;
-  return e?.code === "42P01" || e?.code === "42703" || /relation "?(exams|exam_images|exam_attempts|exam_assignments)"? does not exist|column "?manage_flags"? does not exist/i.test(e?.message ?? "");
+  return e?.code === "42P01" || e?.code === "42703" || /relation "?(exams|exam_images|exam_attempts|exam_assignments)"? does not exist|column "?(manage_flags|kind)"? does not exist/i.test(e?.message ?? "");
 }
 
 /* ------------------------------------------------------------------ examens */
 
 const EXAM_COLUMNS = `id, title, description, duration_minutes AS "durationMinutes",
   threshold_percent AS "thresholdPercent", max_attempts AS "maxAttempts", published,
-  (key_hash IS NOT NULL OR access_key IS NOT NULL) AS "hasKey", manage_flags AS "manageFlags", questions, created_at AS "createdAt", updated_at AS "updatedAt"`;
+  (key_hash IS NOT NULL OR access_key IS NOT NULL) AS "hasKey", manage_flags AS "manageFlags", kind, questions, created_at AS "createdAt", updated_at AS "updatedAt"`;
 
 export async function listExams(opts: { onlyPublished?: boolean } = {}): Promise<ExamRecord[]> {
   return query<ExamRecord>(`SELECT ${EXAM_COLUMNS} FROM exams ${opts.onlyPublished ? "WHERE published" : ""} ORDER BY title`);
@@ -62,9 +62,9 @@ export async function listExamKeys(): Promise<Map<string, string | null>> {
 
 export async function createExam(input: ExamInput): Promise<string> {
   const [row] = await query<{ id: string }>(
-    `INSERT INTO exams (title, description, duration_minutes, threshold_percent, max_attempts, published, access_key, questions, manage_flags)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::text[]) RETURNING id`,
-    [input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags]
+    `INSERT INTO exams (title, description, duration_minutes, threshold_percent, max_attempts, published, access_key, questions, manage_flags, kind)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::text[], $10) RETURNING id`,
+    [input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags, input.kind]
   );
   return row.id;
 }
@@ -75,9 +75,9 @@ export async function updateExam(id: string, input: ExamInput): Promise<boolean>
     `UPDATE exams SET title = $2, description = $3, duration_minutes = $4, threshold_percent = $5,
             max_attempts = $6, published = $7,
             key_hash = CASE WHEN $8::text IS NULL THEN key_hash ELSE NULL END,
-            access_key = COALESCE($8::text, access_key), questions = $9::jsonb, manage_flags = $10::text[], updated_at = now()
+            access_key = COALESCE($8::text, access_key), questions = $9::jsonb, manage_flags = $10::text[], kind = $11, updated_at = now()
       WHERE id = $1 RETURNING id`,
-    [id, input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags]
+    [id, input.title, input.description, input.durationMinutes, input.thresholdPercent, input.maxAttempts, input.published, input.newKey || null, JSON.stringify(input.questions), input.manageFlags, input.kind]
   );
   return rows.length > 0;
 }
@@ -102,7 +102,7 @@ export async function getImage(id: string): Promise<{ mime: string; data: string
 
 /* ------------------------------------------------------------------ passages */
 
-const SUMMARY_COLUMNS = `a.id, a.exam_id AS "examId", a.exam_title AS "examTitle", a.status, a.candidate,
+const SUMMARY_COLUMNS = `COALESCE(a.snapshot->>'kind', 'written') AS kind, a.id, a.exam_id AS "examId", a.exam_title AS "examTitle", a.status, a.candidate,
   a.started_at AS "startedAt", a.submitted_at AS "submittedAt", a.sent_at AS "sentAt", a.verdict`;
 
 /** Un passage chronométré dont le temps est écoulé est considéré comme rendu (avec ce qui avait été sauvegardé). */
@@ -164,6 +164,33 @@ export async function createAttempt(exam: ExamRecord, userId: string, candidate:
     [exam.id, exam.title, userId, JSON.stringify(candidate), JSON.stringify(snapshot), exam.durationMinutes]
   );
   return row.id;
+}
+
+/**
+ * Examen pratique : c'est l'instructeur qui l'ouvre pour un membre. Le passage naît directement « rendu »
+ * (à noter), sans clé ni chronomètre ; le résultat part ensuite vers le membre comme pour un examen écrit.
+ */
+export async function createPracticalAttempt(exam: ExamRecord, userId: string, candidate: Candidate): Promise<string> {
+  const snapshot: ExamSnapshot = {
+    kind: "practical",
+    title: exam.title,
+    description: exam.description,
+    durationMinutes: null,
+    thresholdPercent: exam.thresholdPercent,
+    questions: exam.questions as ExamQuestion[],
+  };
+  const [row] = await query<{ id: string }>(
+    `INSERT INTO exam_attempts (exam_id, exam_title, user_id, candidate, snapshot, status, submitted_at)
+     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, 'submitted', now()) RETURNING id`,
+    [exam.id, exam.title, userId, JSON.stringify(candidate), JSON.stringify(snapshot)]
+  );
+  return row.id;
+}
+
+/** Supprime une évaluation pratique pas encore envoyée (brouillon ouvert par erreur). */
+export async function deletePracticalDraft(id: string): Promise<boolean> {
+  const rows = await query(`DELETE FROM exam_attempts WHERE id = $1 AND status = 'submitted' AND snapshot->>'kind' = 'practical' RETURNING id`, [id]);
+  return rows.length > 0;
 }
 
 /** Sauvegarde du brouillon : refusée une fois le temps écoulé. */

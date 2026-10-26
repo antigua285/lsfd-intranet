@@ -37,7 +37,7 @@ async function Content() {
     if (!isMissingExamsTableError(error)) throw error;
     return <p className="text-[13px] text-slate-600">Lance <code className="bg-slate-100 px-1 rounded">npm run db:setup</code> depuis ton PC, puis recharge.</p>;
   }
-  exams = exams.filter((e) => canManageWith(ctx, e.manageFlags));
+  exams = exams.filter((e) => e.kind !== "practical" && canManageWith(ctx, e.manageFlags));
   const users = (await listUsers()).map((u) => ({ id: u.id, label: `${u.firstName} ${u.lastName} — ${u.grade}` }));
   if (exams.length === 0) return <p className="text-[13px] text-slate-500 border border-slate-200 rounded p-4">Aucun examen à gérer pour toi (ou aucun n&apos;a été créé).</p>;
   return (

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ExamQuestionHead } from "@/components/ExamQuestionHead";
 import { EXAM_LIMITS, answerLines, formatPoints, isChoice, totalPoints, type Attempt, type Grade, type Verdict } from "@/lib/exams-types";
 import { autoScore } from "@/lib/exams-validation";
-import { reopenResultAction, saveGradingAction, sendResultAction } from "./review/actions";
+import { deletePracticalDraftAction, reopenResultAction, saveGradingAction, sendResultAction } from "./review/actions";
 
 const INPUT = "border border-slate-300 rounded px-2 py-1.5 text-[13px] focus:outline-none focus:border-[#0d2644]";
 
@@ -14,6 +14,7 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
   const router = useRouter();
   const { snapshot } = attempt;
   const locked = attempt.status === "sent";
+  const practical = snapshot.kind === "practical";
 
   // Valeurs de départ : la note déjà enregistrée, sinon la suggestion automatique (choix) ou rien (texte).
   const [grades, setGrades] = useState<Record<string, { points: string; comment: string; suggested: boolean }>>(() => {
@@ -35,6 +36,8 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
 
   const max = totalPoints(snapshot.questions);
   const got = Math.round(snapshot.questions.reduce((n, q) => n + (Number(grades[q.id].points) || 0), 0) * 100) / 100;
+  // Critères éliminatoires non validés en totalité : l'examen ne peut pas être « réussi ».
+  const failedEliminatory = snapshot.questions.filter((q) => q.eliminatory && (Number(grades[q.id].points) || 0) < q.points);
   const percent = max ? Math.round((got / max) * 100) : 0;
   const thresholdPoints = snapshot.thresholdPercent ? Math.round(((max * snapshot.thresholdPercent) / 100) * 100) / 100 : null;
 
@@ -65,12 +68,14 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
         <p><span className="text-slate-500">Candidat : </span><strong>{attempt.candidate.name}</strong></p>
         <p><span className="text-slate-500">Grade : </span>{attempt.candidate.grade}</p>
         <p><span className="text-slate-500">Station : </span>{attempt.candidate.station}</p>
-        <p><span className="text-slate-500">Rendu : </span>{attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—"}</p>
+        <p><span className="text-slate-500">{practical ? "Évaluation ouverte : " : "Rendu : "}</span>{attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—"}</p>
       </section>
 
       <div className="sticky top-0 z-10 mt-3 bg-white/95 border border-slate-200 rounded px-3 py-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-[13px]">
         <span>Total : <strong data-testid="grade-total">{formatPoints(got)} / {formatPoints(max)}</strong> ({percent} %)</span>
         {thresholdPoints !== null && <span className="text-slate-500">Seuil indicatif : {snapshot.thresholdPercent} % ({formatPoints(thresholdPoints)} pts)</span>}
+        {practical && <span className="text-[11px] font-bold uppercase bg-slate-100 text-slate-700 rounded px-2 py-0.5">Examen pratique</span>}
+        {failedEliminatory.length > 0 && <span data-testid="eliminatory-warning" className="text-[12px] font-bold text-red-700">Critère éliminatoire non validé : résultat « réussi » impossible</span>}
         <fieldset className="flex items-center gap-3" disabled={locked}>
           <legend className="sr-only">Résultat</legend>
           <label className="flex items-center gap-1"><input type="radio" name="verdict" checked={verdict === "pass"} onChange={() => setVerdict("pass")} /> Réussi</label>
@@ -86,7 +91,8 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
           return (
             <li key={q.id} data-testid="grade-question" className="border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
               <ExamQuestionHead question={q} index={index} />
-              {isChoice(q.type) ? (
+              {q.eliminatory && <span className="self-start text-[11px] font-bold uppercase bg-red-50 text-red-700 border border-red-200 rounded px-2 py-0.5">Critère éliminatoire — à valider en totalité</span>}
+              {practical ? null : isChoice(q.type) ? (
                 <ul className="flex flex-col gap-1 text-[13px]">
                   {q.options?.map((o) => {
                     const chosen = picked.includes(o.id);
@@ -114,7 +120,7 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
                   </span>
                 </label>
                 {g.suggested && <span className="text-[11px] text-amber-700 pb-2">Suggestion automatique — à confirmer</span>}
-                <label className="text-[12px] text-slate-600 flex-1 min-w-[220px]">Commentaire pour le candidat
+                <label className="text-[12px] text-slate-600 flex-1 min-w-[220px]">{practical ? "Remarque pour le membre" : "Commentaire pour le candidat"}
                   <textarea aria-label={`Commentaire question ${index + 1}`} rows={2} disabled={locked} maxLength={EXAM_LIMITS.comment} className={`${INPUT} w-full`} value={g.comment}
                     onChange={(e) => setGrades((p) => ({ ...p, [q.id]: { ...p[q.id], comment: e.target.value } }))} />
                 </label>
@@ -136,6 +142,9 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
           </>
         ) : (
           <>
+            {practical && (
+              <button type="button" disabled={busy} onClick={() => window.confirm("Supprimer cette évaluation ? Rien ne sera envoyé.") && void (async () => { setBusy(true); try { const r = await deletePracticalDraftAction(attempt.id); if (r.ok) router.push("/training/exams/practical"); else setMessage({ ok: false, text: r.error }); } finally { setBusy(false); } })()} className="text-[12px] text-red-700 hover:underline">Supprimer l&apos;évaluation</button>
+            )}
             <button type="button" disabled={busy} onClick={() => run(() => saveGradingAction(attempt.id, payload()), "Correction enregistrée.")} className="border border-slate-300 text-[12px] font-bold uppercase tracking-wide rounded px-4 py-2 hover:bg-slate-100">Enregistrer le brouillon</button>
             <button type="button" disabled={busy} onClick={() => window.confirm("Envoyer le résultat au candidat ?") && run(() => sendResultAction(attempt.id, payload()), "Résultat envoyé.")} className="bg-[#0d2644] text-white text-[12px] font-bold uppercase tracking-wide rounded px-5 py-2 hover:bg-[#143a66] disabled:opacity-50">Envoyer le résultat</button>
           </>

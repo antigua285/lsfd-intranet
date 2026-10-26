@@ -38,7 +38,7 @@ async function Content() {
         <li key={a.id}>
           <Link data-testid="my-attempt" href={a.status === "in_progress" ? `/training/exams/take/${a.id}` : `/training/exams/attempt/${a.id}`} className="flex items-center gap-3 border border-slate-200 rounded-lg px-4 py-3 hover:bg-slate-50">
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-slate-800 truncate">{a.examTitle}</p>
+              <p className="text-[14px] font-bold text-slate-800 truncate">{a.examTitle}{a.kind === "practical" && <span className="ml-2 text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 align-middle">Pratique</span>}</p>
               <p className="text-[12px] text-slate-500">{new Date(a.startedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</p>
             </div>
             <span className="text-[12px] text-slate-600">{a.status === "in_progress" ? "En cours — reprendre" : STATUS_LABEL[a.status]}</span>

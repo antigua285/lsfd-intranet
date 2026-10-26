@@ -16,7 +16,9 @@ function refresh() {
 
 async function check(ctx: Awaited<ReturnType<typeof assertTrainer>>, examId: string, userId: string): Promise<string | null> {
   if (typeof examId !== "string" || !UUID_PATTERN.test(examId) || typeof userId !== "string" || !UUID_PATTERN.test(userId)) return "Demande invalide.";
-  if (!(await getExam(examId))) return "Cet examen n'existe plus.";
+  const exam = await getExam(examId);
+  if (!exam) return "Cet examen n'existe plus.";
+  if (exam.kind === "practical") return "Un examen pratique n'est pas assigné : l'instructeur l'ouvre depuis « Examens pratiques ».";
   if (!(await canManageExamId(ctx, examId))) return "Cet examen est réservé à d'autres formateurs.";
   if (!(await getUserById(userId))) return "Ce compte n'existe plus.";
   return null;

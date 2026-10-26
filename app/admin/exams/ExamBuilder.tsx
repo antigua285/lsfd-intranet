@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExamQuestionHead } from "@/components/ExamQuestionHead";
 import { shrinkImage } from "@/lib/client-image";
-import { EXAM_LIMITS, QUESTION_TYPES, QUESTION_TYPE_LABEL, formatPoints, isChoice, totalPoints, type ExamQuestion, type QuestionType } from "@/lib/exams-types";
+import { EXAM_KIND_LABEL, EXAM_LIMITS, QUESTION_TYPE_LABEL, formatPoints, typesForKind, type ExamKind, isChoice, totalPoints, type ExamQuestion, type QuestionType } from "@/lib/exams-types";
 import { newId } from "@/lib/forms-types";
 import { saveExamAction } from "./actions";
 
@@ -15,8 +15,10 @@ type Initial = {
   thresholdPercent: number | null;
   maxAttempts: number;
   published: boolean;
+  kind?: ExamKind;
   manageFlags: string[];
   hasKey: boolean;
+  questionsCount?: number;
   /** Clé actuelle lisible (absente pour un ancien examen dont la clé n'est stockée que chiffrée). */
   currentKey?: string | null;
   questions: ExamQuestion[];
@@ -33,6 +35,8 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
   const [threshold, setThreshold] = useState(initial.thresholdPercent?.toString() ?? "");
   const [maxAttempts, setMaxAttempts] = useState(String(initial.maxAttempts));
   const [published, setPublished] = useState(initial.published);
+  const [kind, setKind] = useState<ExamKind>(initial.kind ?? "written");
+  const practical = kind === "practical";
   const [newKey, setNewKey] = useState("");
   const [manageFlags, setManageFlags] = useState<string[]>(initial.manageFlags ?? []);
   const [questions, setQuestions] = useState<ExamQuestion[]>(initial.questions);
@@ -77,7 +81,7 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
     setMessage(null);
     try {
       const result = await saveExamAction(examId, {
-        title, description, durationMinutes: duration, thresholdPercent: threshold, maxAttempts, published, manageFlags, newKey, questions,
+        title, description, durationMinutes: duration, thresholdPercent: threshold, maxAttempts, published, kind, manageFlags, newKey, questions,
       });
       if (!result.ok) return setMessage({ ok: false, text: result.error });
       setMessage({ ok: true, text: "Examen enregistré." });
@@ -96,31 +100,43 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
     <div className="flex flex-col gap-5">
       <section className="border border-slate-200 rounded p-4 flex flex-col gap-3">
         <h2 className="text-[12px] font-bold uppercase tracking-wide text-slate-600">Examen</h2>
+        <fieldset className="text-[13px] flex flex-wrap items-center gap-4" data-testid="exam-kind">
+          <legend className="sr-only">Type d&apos;examen</legend>
+          <span className="font-bold">Type :</span>
+          {(["written", "practical"] as const).map((k) => (
+            <label key={k} className="flex items-center gap-1.5">
+              <input type="radio" name="exam-kind" checked={kind === k} disabled={(initial.questionsCount ?? 0) > 0 && kind !== k}
+                onChange={() => { setKind(k); setQuestions([]); }} />
+              {EXAM_KIND_LABEL[k]}{k === "practical" ? " (rempli par l'instructeur)" : " (passé par le candidat avec une clé)"}
+            </label>
+          ))}
+        </fieldset>
         <label className="text-[13px]">Nom de l&apos;examen
           <input className={INPUT} value={title} maxLength={EXAM_LIMITS.title} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label className="text-[13px]">Consignes (affichées avant le début)
           <textarea className={INPUT} rows={3} value={description} maxLength={EXAM_LIMITS.description} onChange={(e) => setDescription(e.target.value)} />
         </label>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-[13px]">Durée (minutes, vide = sans chronomètre)
+        <div className={`grid gap-3 ${practical ? "sm:grid-cols-1" : "sm:grid-cols-3"}`}>
+          {!practical && <label className="text-[13px]">Durée (minutes, vide = sans chronomètre)
             <input className={INPUT} type="number" min={1} max={600} value={duration} onChange={(e) => setDuration(e.target.value)} />
-          </label>
+          </label>}
           <label className="text-[13px]">Seuil de réussite indicatif (%)
             <input className={INPUT} type="number" min={1} max={100} value={threshold} onChange={(e) => setThreshold(e.target.value)} />
           </label>
-          <label className="text-[13px]">Tentatives autorisées
+          {!practical && <label className="text-[13px]">Tentatives autorisées
             <input className={INPUT} type="number" min={1} max={20} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
-          </label>
+          </label>}
         </div>
         <p className="text-[12px] text-slate-500">
           Le seuil n&apos;est qu&apos;un repère pour l&apos;examinateur : c&apos;est lui qui décide « réussi » ou « non réussi ».
           Total de l&apos;examen : <strong data-testid="exam-total">{formatPoints(total)} point{total > 1 ? "s" : ""}</strong>.
         </p>
-        <label className="text-[13px]">Clé d&apos;accès {initial.currentKey ? <span className="text-green-700">(actuelle : <strong data-testid="current-key">{initial.currentKey}</strong> — saisis-en une autre pour la remplacer)</span> : initial.hasKey ? <span className="text-green-700">(définie ✓ ancienne clé illisible — saisis-en une nouvelle pour la remplacer)</span> : <span className="text-amber-700">(à définir)</span>}
+        {!practical && <label className="text-[13px]">Clé d&apos;accès {initial.currentKey ? <span className="text-green-700">(actuelle : <strong data-testid="current-key">{initial.currentKey}</strong> — saisis-en une autre pour la remplacer)</span> : initial.hasKey ? <span className="text-green-700">(définie ✓ ancienne clé illisible — saisis-en une nouvelle pour la remplacer)</span> : <span className="text-amber-700">(à définir)</span>}
           <input className={INPUT} type="text" autoComplete="off" placeholder={initial.hasKey ? "Nouvelle clé (laisser vide pour garder l'actuelle)" : "Clé à donner aux candidats"} value={newKey} maxLength={EXAM_LIMITS.key} onChange={(e) => setNewKey(e.target.value)} />
-        </label>
-        <p className="text-[12px] text-slate-500">La clé est visible par les modérateurs et la Training Division (page « Clés et assignation »).</p>
+        </label>}
+        {!practical && <p className="text-[12px] text-slate-500">La clé est visible par les modérateurs et la Training Division (page « Clés et assignation »).</p>}
+        {practical && <p className="text-[12px] text-slate-500">Examen pratique : pas de clé ni de chronomètre. Chaque critère est noté par l&apos;instructeur depuis Formation → Espace TD → Examens pratiques, ou depuis le carnet de probation du membre.</p>}
         <fieldset className="text-[13px] border border-slate-200 rounded p-3" data-testid="exam-manage-flags">
           <legend className="px-1 text-[12px] font-bold uppercase tracking-wide text-slate-600">Gérée par (flags)</legend>
           <p className="text-[12px] text-slate-500 mb-2">
@@ -142,18 +158,18 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
           )}
         </fieldset>
         <label className="text-[13px] flex items-center gap-2">
-          <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> Publié (les membres peuvent le passer avec la clé)
+          <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> {practical ? "Publié (les instructeurs peuvent l'ouvrir pour un membre)" : "Publié (les membres peuvent le passer avec la clé)"}
         </label>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-[12px] font-bold uppercase tracking-wide text-slate-600">Questions ({questions.length})</h2>
+        <h2 className="text-[12px] font-bold uppercase tracking-wide text-slate-600">{practical ? "Critères" : "Questions"} ({questions.length})</h2>
         {questions.map((q, index) => (
           <div key={q.id} data-testid="exam-question" className="border border-slate-200 rounded p-3 bg-slate-50 flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[12px] font-bold">Question {index + 1}</span>
               <select aria-label="Type de réponse" className="border border-slate-300 rounded px-2 py-1 text-[12px]" value={q.type} onChange={(e) => changeType(q, e.target.value as QuestionType)}>
-                {QUESTION_TYPES.map((t) => <option key={t} value={t}>{QUESTION_TYPE_LABEL[t]}</option>)}
+                {typesForKind(kind).map((t) => <option key={t} value={t}>{QUESTION_TYPE_LABEL[t]}</option>)}
               </select>
               <label className="text-[12px] flex items-center gap-1">Points
                 <input aria-label="Points de la question" type="number" min={0} max={EXAM_LIMITS.maxPoints} step={0.25} className="w-20 border border-slate-300 rounded px-2 py-1 text-[12px]" value={q.points} onChange={(e) => patch(q.id, { points: e.target.value === "" ? 0 : Number(e.target.value) })} />
@@ -193,11 +209,16 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
                 )}
               </div>
             )}
-            {!isChoice(q.type) && <p className="text-[12px] text-slate-500">Réponse libre : corrigée à la main par l&apos;examinateur.</p>}
+            {q.type === "criterion" ? (
+              <label className="text-[12px] flex items-center gap-1.5">
+                <input type="checkbox" checked={q.eliminatory === true} onChange={(e) => patch(q.id, { eliminatory: e.target.checked })} />
+                Critère éliminatoire (doit être validé en totalité, sinon l&apos;examen ne peut pas être « réussi »)
+              </label>
+            ) : !isChoice(q.type) && <p className="text-[12px] text-slate-500">Réponse libre : corrigée à la main par l&apos;examinateur.</p>}
           </div>
         ))}
-        <button type="button" className={`${SMALL} self-start`} onClick={() => setQuestions((p) => [...p, { id: newId("q"), type: "single", prompt: "", situation: "", imageId: null, points: 1, options: [{ id: newId("o"), label: "Choix 1", correct: true }, { id: newId("o"), label: "Choix 2", correct: false }] }])}>
-          + Ajouter une question
+        <button type="button" className={`${SMALL} self-start`} onClick={() => setQuestions((p) => [...p, practical ? { id: newId("q"), type: "criterion", prompt: "", situation: "", imageId: null, points: 1 } : { id: newId("q"), type: "single", prompt: "", situation: "", imageId: null, points: 1, options: [{ id: newId("o"), label: "Choix 1", correct: true }, { id: newId("o"), label: "Choix 2", correct: false }] }])}>
+          {practical ? "+ Ajouter un critère" : "+ Ajouter une question"}
         </button>
       </section>
 

@@ -67,7 +67,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Points</p>
           <p className="text-xl font-bold text-slate-800">{formatPoints(got)} / {formatPoints(max)}</p>
         </div>
-        <div className="text-[12px] text-slate-500">Corrigé par {attempt.graderName || "la Training Division"}</div>
+        <div className="text-[12px] text-slate-500">{snapshot.kind === "practical" ? "Évalué par" : "Corrigé par"} {attempt.graderName || "la Training Division"}</div>
       </div>
       {attempt.comment && (
         <p className="mt-3 border-l-4 border-[#0d2644] bg-slate-50 px-3 py-2 text-[13px] whitespace-pre-wrap"><strong>Commentaire de l&apos;examinateur : </strong>{attempt.comment}</p>
@@ -79,10 +79,11 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           return (
             <li key={q.id} className="border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
               <ExamQuestionHead question={q} index={index} showPoints={false} />
-              <div className="text-[14px]">
+              {q.eliminatory && <p className="text-[11px] font-bold uppercase text-red-700">Critère éliminatoire</p>}
+              {snapshot.kind !== "practical" && <div className="text-[14px]">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Ta réponse</p>
                 {lines.length ? lines.map((l, i) => <p key={i} className="whitespace-pre-wrap">{lines.length > 1 ? "• " : ""}{l}</p>) : <p className="text-slate-400">(pas de réponse)</p>}
-              </div>
+              </div>}
               <p className="text-[13px] font-bold">{formatPoints(grade?.points ?? 0)} / {formatPoints(q.points)} pt{q.points > 1 ? "s" : ""}</p>
               {grade?.comment && <p className="text-[13px] bg-slate-50 border-l-4 border-slate-400 px-3 py-1.5 whitespace-pre-wrap">{grade.comment}</p>}
             </li>

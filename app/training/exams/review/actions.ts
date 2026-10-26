@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertTrainer } from "@/lib/access";
-import { canManageExamId, getAttempt, reopenResult, saveGrading, sendResult } from "@/lib/exams";
+import { canManageExamId, deletePracticalDraft, getAttempt, reopenResult, saveGrading, sendResult } from "@/lib/exams";
 import { parseComment, parseGrades } from "@/lib/exams-validation";
 import type { Grade, Verdict } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
@@ -36,6 +36,11 @@ async function persist(id: string, payload: GradingPayload, requireComplete: boo
     if (missing.length) return { ok: false, error: `${missing.length} question(s) n'ont pas de note.` };
     if (!verdict) return { ok: false, error: "Choisis le résultat : réussi ou non réussi." };
   }
+  if (verdict === "pass") {
+    // Un critère éliminatoire doit être validé en totalité pour que l'examen soit réussi.
+    const failed = attempt.snapshot.questions.filter((q) => q.eliminatory && (grades.value[q.id]?.points ?? 0) < q.points);
+    if (failed.length) return { ok: false, error: `Critère éliminatoire non validé (${failed.map((q) => q.prompt.slice(0, 40)).join(", ")}) : l'examen ne peut pas être « réussi ».` };
+  }
   const saved = await saveGrading(id, { grades: grades.value, verdict, comment: comment.value, graderId: ctx.user.id, graderName: `${ctx.user.firstName} ${ctx.user.lastName}` });
   return saved ? { ok: true } : { ok: false, error: "Enregistrement impossible." };
 }
@@ -61,6 +66,18 @@ export async function reopenResultAction(id: string): Promise<Result> {
   const attempt = await getAttempt(id);
   if (!attempt || !(await canManageExamId(ctx, attempt.examId))) return { ok: false, error: "Passage introuvable ou réservé à d'autres formateurs." };
   if (!(await reopenResult(id))) return { ok: false, error: "Impossible de rouvrir." };
+  refresh(id);
+  return { ok: true };
+}
+
+/** Supprime une évaluation pratique qui n'a pas encore été envoyée (ouverte par erreur). */
+export async function deletePracticalDraftAction(id: string): Promise<Result> {
+  const ctx = await assertTrainer();
+  if (typeof id !== "string" || !UUID_PATTERN.test(id)) return { ok: false, error: "Passage invalide." };
+  const attempt = await getAttempt(id);
+  if (!attempt || !(await canManageExamId(ctx, attempt.examId))) return { ok: false, error: "Passage introuvable ou réservé à d'autres formateurs." };
+  if (attempt.snapshot.kind !== "practical" || attempt.status !== "submitted") return { ok: false, error: "Seule une évaluation pratique non envoyée peut être supprimée." };
+  if (!(await deletePracticalDraft(id))) return { ok: false, error: "Suppression impossible." };
   refresh(id);
   return { ok: true };
 }

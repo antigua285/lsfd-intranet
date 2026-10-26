@@ -1,6 +1,6 @@
 /** Types et règles des examens, partagés entre le serveur et le navigateur (aucun accès base ici). */
 
-export const QUESTION_TYPES = ["single", "multiple", "short", "long"] as const;
+export const QUESTION_TYPES = ["single", "multiple", "short", "long", "criterion"] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
@@ -8,7 +8,14 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   multiple: "QCM (plusieurs réponses)",
   short: "Réponse courte",
   long: "Réponse longue",
+  criterion: "Critère pratique (noté par l'instructeur)",
 };
+
+/** Examen écrit (passé par le candidat avec une clé) ou pratique (rempli par l'instructeur). */
+export type ExamKind = "written" | "practical";
+export const EXAM_KIND_LABEL: Record<ExamKind, string> = { written: "Écrit", practical: "Pratique" };
+/** Les types de question possibles selon le genre d'examen. */
+export const typesForKind = (kind: ExamKind): QuestionType[] => (kind === "practical" ? ["criterion"] : ["single", "multiple", "short", "long"]);
 
 export const isChoice = (type: QuestionType) => type === "single" || type === "multiple";
 
@@ -24,6 +31,8 @@ export type ExamQuestion = {
   imageId: string | null;
   points: number;
   options?: ExamOption[];
+  /** Critère pratique éliminatoire : il doit être validé en totalité, sinon l'examen ne peut pas être « réussi ». */
+  eliminatory?: boolean;
 };
 
 /** Question sans les bonnes réponses : seule version que le candidat reçoit. */
@@ -54,6 +63,7 @@ export type ExamRecord = {
   maxAttempts: number;
   published: boolean;
   hasKey: boolean;
+  kind: ExamKind;
   /** Si non vide : seuls les TD qui possèdent un de ces flags gèrent et corrigent cet examen. */
   manageFlags: string[];
   questions: ExamQuestion[];
@@ -62,6 +72,8 @@ export type ExamRecord = {
 };
 
 export type ExamSnapshot = {
+  /** Absent sur les anciens passages : examen écrit. */
+  kind?: ExamKind;
   title: string;
   description: string;
   durationMinutes: number | null;
@@ -88,6 +100,7 @@ export type AttemptSummary = {
   submittedAt: string | null;
   sentAt: string | null;
   verdict: Verdict | null;
+  kind: ExamKind;
 };
 
 export type Attempt = AttemptSummary & {

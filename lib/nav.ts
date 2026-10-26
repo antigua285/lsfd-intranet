@@ -18,7 +18,7 @@ const ESPACE_TD: Crumb = { label: "Espace TD", href: "/training/td" };
 const ADMIN: Crumb = { label: "Administration", href: "/admin" };
 const ADMIN_EXAMS: Crumb = { label: "Examens", href: "/admin/exams" };
 
-export type TrailPage = "review" | "review-detail" | "manage" | "cards-manage";
+export type TrailPage = "review" | "review-detail" | "manage" | "cards-manage" | "practical";
 
 export function trailFor(page: TrailPage, from: From, detailLabel?: string): Crumb[] {
   const examBase = from === "admin" ? [ADMIN, ADMIN_EXAMS] : [FORMATION, ESPACE_TD];
@@ -27,6 +27,8 @@ export function trailFor(page: TrailPage, from: From, detailLabel?: string): Cru
       return [...examBase, { label: "Correction des examens" }];
     case "review-detail":
       return [...examBase, { label: "Correction des examens", href: withFrom("/training/exams/review", from) }, { label: detailLabel ?? "Copie" }];
+    case "practical":
+      return [FORMATION, ESPACE_TD, { label: "Examens pratiques" }];
     case "manage":
       return [...examBase, { label: "Clés et assignation" }];
     case "cards-manage":
