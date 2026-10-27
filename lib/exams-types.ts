@@ -1,6 +1,6 @@
 /** Types et règles des examens, partagés entre le serveur et le navigateur (aucun accès base ici). */
 
-export const QUESTION_TYPES = ["single", "multiple", "short", "long", "criterion"] as const;
+export const QUESTION_TYPES = ["single", "multiple", "short", "long", "criterion", "heading", "note"] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
@@ -9,17 +9,26 @@ export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
   short: "Réponse courte",
   long: "Réponse longue",
   criterion: "Critère pratique (noté par l'instructeur)",
+  heading: "Nom de catégorie",
+  note: "Texte explicatif",
 };
+
+/** Éléments de mise en page (examen pratique) : ni réponse, ni note. */
+export const isLayout = (type: QuestionType) => type === "heading" || type === "note";
+/** Les questions / critères qui comptent dans la note (sans les titres ni les textes explicatifs). */
+export const gradableQuestions = <T extends { type: QuestionType }>(questions: T[]): T[] => questions.filter((q) => !isLayout(q.type));
 
 /** Examen écrit (passé par le candidat avec une clé) ou pratique (rempli par l'instructeur). */
 export type ExamKind = "written" | "practical";
 export const EXAM_KIND_LABEL: Record<ExamKind, string> = { written: "Écrit", practical: "Pratique" };
 /** Les types de question possibles selon le genre d'examen. */
-export const typesForKind = (kind: ExamKind): QuestionType[] => (kind === "practical" ? ["criterion"] : ["single", "multiple", "short", "long"]);
+export const typesForKind = (kind: ExamKind): QuestionType[] => (kind === "practical" ? ["criterion", "heading", "note"] : ["single", "multiple", "short", "long"]);
 
 export const isChoice = (type: QuestionType) => type === "single" || type === "multiple";
 
 export type ExamOption = { id: string; label: string; correct?: boolean };
+
+export type ChecklistItem = { id: string; label: string };
 
 export type ExamQuestion = {
   id: string;
@@ -31,6 +40,8 @@ export type ExamQuestion = {
   imageId: string | null;
   points: number;
   options?: ExamOption[];
+  /** Critère pratique : points à vérifier un par un ; le critère n'est validé d'office que si tout est coché. */
+  checklist?: ChecklistItem[];
   /** Critère pratique éliminatoire : il doit être validé en totalité, sinon l'examen ne peut pas être « réussi ». */
   eliminatory?: boolean;
 };
@@ -50,6 +61,8 @@ export const EXAM_LIMITS = {
   shortAnswer: 300,
   longAnswer: 4000,
   comment: 1000,
+  checklistItems: 30,
+  checklistLabel: 200,
   key: 64,
   keyMin: 4,
 };

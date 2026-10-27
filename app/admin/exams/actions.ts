@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { unknownFlags } from "@/lib/access";
 import { assertAdmin } from "@/lib/auth";
 import { createExam, deleteExam, isMissingExamsTableError, getExam, updateExam } from "@/lib/exams";
+import { gradableQuestions } from "@/lib/exams-types";
 import { parseExamInput } from "@/lib/exams-validation";
 import { UUID_PATTERN } from "@/lib/validation";
 
@@ -32,7 +33,7 @@ export async function saveExamAction(id: string | null, raw: unknown): Promise<S
       if (!existing) return { ok: false, error: "Cet examen n'existe plus." };
     }
     if (input.kind === "written" && input.published && !input.newKey && !existing?.hasKey) return { ok: false, error: "Définis une clé d'accès avant de publier l'examen." };
-    if (input.published && input.questions.length === 0) return { ok: false, error: "Ajoute au moins une question avant de publier." };
+    if (input.published && gradableQuestions(input.questions).length === 0) return { ok: false, error: input.kind === "practical" ? "Ajoute au moins un critère avant de publier." : "Ajoute au moins une question avant de publier." };
     if (id === null) {
       const created = await createExam(input);
       refresh();

@@ -3,7 +3,7 @@ import { LinkButton } from "@/components/LinkButton";
 import { AdminNav } from "@/components/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { isMissingExamsTableError, listExams } from "@/lib/exams";
-import { formatPoints, totalPoints, type ExamRecord } from "@/lib/exams-types";
+import { formatPoints, gradableQuestions, totalPoints, type ExamRecord } from "@/lib/exams-types";
 import { DeleteExamButton } from "./ExamsListActions";
 
 export const metadata = { title: "Examens | LSFD Intranet" };
@@ -51,7 +51,7 @@ async function Content() {
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-slate-800 truncate">{exam.title}</p>
                 <p className="text-[12px] text-slate-500">
-                  {exam.kind === "practical" ? "Pratique · " : ""}{exam.questions.length} {exam.kind === "practical" ? "critère(s)" : "question(s)"} · {formatPoints(totalPoints(exam.questions))} pts · {exam.kind === "practical" ? "" : `${exam.durationMinutes ? `${exam.durationMinutes} min` : "sans chrono"} · `}{exam.published ? "Publié" : "Brouillon"}{exam.kind === "practical" || exam.hasKey ? "" : " · sans clé"}
+                  {exam.kind === "practical" ? "Pratique · " : ""}{gradableQuestions(exam.questions).length} {exam.kind === "practical" ? "critère(s)" : "question(s)"} · {formatPoints(totalPoints(exam.questions))} pts · {exam.kind === "practical" ? "" : `${exam.durationMinutes ? `${exam.durationMinutes} min` : "sans chrono"} · `}{exam.published ? "Publié" : "Brouillon"}{exam.kind === "practical" || exam.hasKey ? "" : " · sans clé"}
                 </p>
               </div>
               <LinkButton href={`/admin/exams/${exam.id}`}>Modifier</LinkButton>

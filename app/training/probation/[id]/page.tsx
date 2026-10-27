@@ -7,7 +7,7 @@ import { getUserFlags } from "@/lib/access";
 import { notFound, redirect } from "next/navigation";
 import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
 import { closeExpiredAttempts, isMissingExamsTableError, listAttemptsByUser, listExamManageFlags, listExams } from "@/lib/exams";
-import { EXAM_KIND_LABEL, VERDICT_LABEL, type AttemptSummary } from "@/lib/exams-types";
+import { EXAM_KIND_LABEL, VERDICT_LABEL, gradableQuestions, type AttemptSummary } from "@/lib/exams-types";
 import { StartPractical, type PracticalExam } from "../../exams/practical/StartPractical";
 import { UUID_PATTERN } from "@/lib/validation";
 import { getNotebook, getTemplate, isMissingProbationTableError, listComments, type Comment, type NotebookRow, type TemplateCategory } from "@/lib/probation";
@@ -130,8 +130,8 @@ async function loadNotebookExams(ctx: Ctx, userId: string, canStart: boolean) {
     [attempts, flagsByExam] = await Promise.all([listAttemptsByUser(userId), listExamManageFlags()]);
     if (canStart) {
       practical = (await listExams())
-        .filter((e) => e.kind === "practical" && e.published && e.questions.length > 0 && canManageWith(ctx, e.manageFlags))
-        .map((e) => ({ id: e.id, title: e.title, criteria: e.questions.length }));
+        .filter((e) => e.kind === "practical" && e.published && gradableQuestions(e.questions).length > 0 && canManageWith(ctx, e.manageFlags))
+        .map((e) => ({ id: e.id, title: e.title, criteria: gradableQuestions(e.questions).length }));
       const u = await getUserById(userId);
       if (u) target = { id: u.id, label: `${u.firstName} ${u.lastName}` };
     }

@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { assertTrainer } from "@/lib/access";
 import { canManageExamId, deletePracticalDraft, getAttempt, reopenResult, saveGrading, sendResult } from "@/lib/exams";
-import { parseComment, parseGrades } from "@/lib/exams-validation";
-import type { Grade, Verdict } from "@/lib/exams-types";
+import { parseChecks, parseComment, parseGrades } from "@/lib/exams-validation";
+import { gradableQuestions, type Grade, type Verdict } from "@/lib/exams-types";
 import { UUID_PATTERN } from "@/lib/validation";
 
 type Result = { ok: true } | { ok: false; error: string };
-export type GradingPayload = { grades: Record<string, Grade>; verdict: Verdict | null; comment: string };
+export type GradingPayload = { grades: Record<string, Grade>; checks?: Record<string, string[]>; verdict: Verdict | null; comment: string };
 
 function refresh(id: string) {
   revalidatePath("/training/exams/review");
@@ -27,21 +27,23 @@ async function persist(id: string, payload: GradingPayload, requireComplete: boo
 
   const grades = parseGrades(attempt.snapshot, payload?.grades);
   if (!grades.ok) return grades;
+  const checks = parseChecks(attempt.snapshot, payload?.checks);
+  if (!checks.ok) return checks;
   const comment = parseComment(payload?.comment);
   if (!comment.ok) return comment;
   const verdict: Verdict | null = payload?.verdict === "pass" || payload?.verdict === "fail" ? payload.verdict : null;
 
   if (requireComplete) {
-    const missing = attempt.snapshot.questions.filter((q) => grades.value[q.id]?.points == null);
+    const missing = gradableQuestions(attempt.snapshot.questions).filter((q) => grades.value[q.id]?.points == null);
     if (missing.length) return { ok: false, error: `${missing.length} question(s) n'ont pas de note.` };
     if (!verdict) return { ok: false, error: "Choisis le résultat : réussi ou non réussi." };
   }
   if (verdict === "pass") {
     // Un critère éliminatoire doit être validé en totalité pour que l'examen soit réussi.
-    const failed = attempt.snapshot.questions.filter((q) => q.eliminatory && (grades.value[q.id]?.points ?? 0) < q.points);
+    const failed = gradableQuestions(attempt.snapshot.questions).filter((q) => q.eliminatory && (grades.value[q.id]?.points ?? 0) < q.points);
     if (failed.length) return { ok: false, error: `Critère éliminatoire non validé (${failed.map((q) => q.prompt.slice(0, 40)).join(", ")}) : l'examen ne peut pas être « réussi ».` };
   }
-  const saved = await saveGrading(id, { grades: grades.value, verdict, comment: comment.value, graderId: ctx.user.id, graderName: `${ctx.user.firstName} ${ctx.user.lastName}` });
+  const saved = await saveGrading(id, { grades: grades.value, checks: checks.value, verdict, comment: comment.value, graderId: ctx.user.id, graderName: `${ctx.user.firstName} ${ctx.user.lastName}` });
   return saved ? { ok: true } : { ok: false, error: "Enregistrement impossible." };
 }
 

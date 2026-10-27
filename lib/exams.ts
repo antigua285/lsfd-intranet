@@ -221,12 +221,13 @@ export async function submitAttempt(id: string, userId: string, answers: Record<
 /** Enregistre la correction (brouillon). Impossible une fois le résultat envoyé. */
 export async function saveGrading(
   id: string,
-  input: { grades: Record<string, Grade>; verdict: Verdict | null; comment: string; graderId: string; graderName: string }
+  input: { grades: Record<string, Grade>; checks?: Record<string, string[]>; verdict: Verdict | null; comment: string; graderId: string; graderName: string }
 ): Promise<boolean> {
   const rows = await query(
-    `UPDATE exam_attempts SET grades = $2::jsonb, verdict = $3, comment = $4, graded_by = $5, grader_name = $6
+    `UPDATE exam_attempts SET grades = $2::jsonb, verdict = $3, comment = $4, graded_by = $5, grader_name = $6,
+            answers = answers || $7::jsonb
       WHERE id = $1 AND status = 'submitted' RETURNING id`,
-    [id, JSON.stringify(input.grades), input.verdict, input.comment, input.graderId, input.graderName]
+    [id, JSON.stringify(input.grades), input.verdict, input.comment, input.graderId, input.graderName, JSON.stringify(input.checks ?? {})]
   );
   return rows.length > 0;
 }

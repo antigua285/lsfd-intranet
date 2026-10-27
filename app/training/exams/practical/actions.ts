@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { assertTrainer } from "@/lib/access";
 import { canManageExamId, createPracticalAttempt, getExam, isMissingExamsTableError } from "@/lib/exams";
+import { gradableQuestions } from "@/lib/exams-types";
 import { getUserById } from "@/lib/users";
 import { UUID_PATTERN } from "@/lib/validation";
 
@@ -17,7 +18,7 @@ export async function startPracticalAction(examId: string, userId: string): Prom
   try {
     const exam = await getExam(examId);
     if (!exam || exam.kind !== "practical") return { ok: false, error: "Examen pratique introuvable." };
-    if (!exam.published || exam.questions.length === 0) return { ok: false, error: "Cet examen pratique n'est pas encore prêt (publié, avec au moins un critère)." };
+    if (!exam.published || gradableQuestions(exam.questions).length === 0) return { ok: false, error: "Cet examen pratique n'est pas encore prêt (publié, avec au moins un critère)." };
     if (!(await canManageExamId(ctx, examId))) return { ok: false, error: "Cet examen est réservé à d'autres formateurs." };
     const user = await getUserById(userId);
     if (!user) return { ok: false, error: "Ce compte n'existe plus." };

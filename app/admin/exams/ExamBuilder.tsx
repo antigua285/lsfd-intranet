@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExamQuestionHead } from "@/components/ExamQuestionHead";
 import { shrinkImage } from "@/lib/client-image";
-import { EXAM_KIND_LABEL, EXAM_LIMITS, QUESTION_TYPE_LABEL, formatPoints, typesForKind, type ExamKind, isChoice, totalPoints, type ExamQuestion, type QuestionType } from "@/lib/exams-types";
+import { EXAM_KIND_LABEL, EXAM_LIMITS, QUESTION_TYPE_LABEL, formatPoints, isLayout, typesForKind, type ExamKind, isChoice, totalPoints, type ExamQuestion, type QuestionType } from "@/lib/exams-types";
 import { newId } from "@/lib/forms-types";
 import { saveExamAction } from "./actions";
 
@@ -167,30 +167,30 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
         {questions.map((q, index) => (
           <div key={q.id} data-testid="exam-question" className="border border-slate-200 rounded p-3 bg-slate-50 flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-bold">Question {index + 1}</span>
+              <span className="text-[12px] font-bold">{q.type === "heading" ? "Catégorie" : q.type === "note" ? "Texte" : practical ? `Critère ${questions.slice(0, index + 1).filter((x) => !isLayout(x.type)).length}` : `Question ${index + 1}`}</span>
               <select aria-label="Type de réponse" className="border border-slate-300 rounded px-2 py-1 text-[12px]" value={q.type} onChange={(e) => changeType(q, e.target.value as QuestionType)}>
                 {typesForKind(kind).map((t) => <option key={t} value={t}>{QUESTION_TYPE_LABEL[t]}</option>)}
               </select>
-              <label className="text-[12px] flex items-center gap-1">Points
+              {!isLayout(q.type) && <label className="text-[12px] flex items-center gap-1">Points
                 <input aria-label="Points de la question" type="number" min={0} max={EXAM_LIMITS.maxPoints} step={0.25} className="w-20 border border-slate-300 rounded px-2 py-1 text-[12px]" value={q.points} onChange={(e) => patch(q.id, { points: e.target.value === "" ? 0 : Number(e.target.value) })} />
-              </label>
+              </label>}
               <span className="flex-1" />
               <button type="button" className={SMALL} disabled={index === 0} onClick={() => move(index, -1)} aria-label="Monter">↑</button>
               <button type="button" className={SMALL} disabled={index === questions.length - 1} onClick={() => move(index, 1)} aria-label="Descendre">↓</button>
               <button type="button" className={`${SMALL} text-red-700`} onClick={() => setQuestions((p) => p.filter((x) => x.id !== q.id))}>Supprimer</button>
             </div>
-            <label className="text-[12px] text-slate-600">Mise en situation (facultatif)
+            {!isLayout(q.type) && <label className="text-[12px] text-slate-600">Mise en situation (facultatif)
               <textarea className={INPUT} rows={2} maxLength={EXAM_LIMITS.situation} value={q.situation} onChange={(e) => patch(q.id, { situation: e.target.value })} />
-            </label>
-            <div className="text-[12px] text-slate-600">
+            </label>}
+            {!isLayout(q.type) && <div className="text-[12px] text-slate-600">
               Image (facultatif)
               <div className="flex items-center gap-3 mt-1">
                 <input type="file" aria-label="Image de la question" accept="image/jpeg,image/png,image/webp" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(q, f); e.target.value = ""; }} />
                 {q.imageId && <button type="button" className={SMALL} onClick={() => patch(q.id, { imageId: null })}>Retirer l&apos;image</button>}
               </div>
               {q.imageId && <ExamQuestionHead question={{ situation: "", imageId: q.imageId, prompt: "", points: 0 }} index={-1} showPoints={false} />}
-            </div>
-            <label className="text-[12px] text-slate-600">Question
+            </div>}
+            <label className="text-[12px] text-slate-600">{q.type === "heading" ? "Nom de la catégorie" : q.type === "note" ? "Texte explicatif" : q.type === "criterion" ? "Critère (la compétence évaluée)" : "Question"}
               <textarea className={INPUT} rows={2} maxLength={EXAM_LIMITS.prompt} value={q.prompt} onChange={(e) => patch(q.id, { prompt: e.target.value })} />
             </label>
             {isChoice(q.type) && (
@@ -209,17 +209,43 @@ export function ExamBuilder({ examId, initial, allFlags = [] }: { examId: string
                 )}
               </div>
             )}
-            {q.type === "criterion" ? (
-              <label className="text-[12px] flex items-center gap-1.5">
-                <input type="checkbox" checked={q.eliminatory === true} onChange={(e) => patch(q.id, { eliminatory: e.target.checked })} />
-                Critère éliminatoire (doit être validé en totalité, sinon l&apos;examen ne peut pas être « réussi »)
-              </label>
-            ) : !isChoice(q.type) && <p className="text-[12px] text-slate-500">Réponse libre : corrigée à la main par l&apos;examinateur.</p>}
+            {q.type === "criterion" && (
+              <div className="flex flex-col gap-2" data-testid="criterion-extras">
+                <label className="text-[12px] flex items-center gap-1.5">
+                  <input type="checkbox" checked={q.eliminatory === true} onChange={(e) => patch(q.id, { eliminatory: e.target.checked })} />
+                  Critère éliminatoire (doit être validé en totalité, sinon l&apos;examen ne peut pas être « réussi »)
+                </label>
+                <div className="border border-slate-200 bg-white rounded p-2 flex flex-col gap-1.5">
+                  <p className="text-[12px] font-bold text-slate-600">Checklist (facultatif)</p>
+                  <p className="text-[11px] text-slate-500">Ce qu&apos;on attend concrètement. Le critère est validé d&apos;office (points complets) quand tout est coché ; l&apos;examinateur peut toujours corriger la note à la main.</p>
+                  {(q.checklist ?? []).map((item, i) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <span aria-hidden className="text-slate-400">☐</span>
+                      <input aria-label={`Point de checklist ${i + 1}`} className={INPUT} value={item.label} maxLength={EXAM_LIMITS.checklistLabel}
+                        onChange={(e) => patch(q.id, { checklist: (q.checklist ?? []).map((x) => (x.id === item.id ? { ...x, label: e.target.value } : x)) })} />
+                      <button type="button" className={SMALL} onClick={() => patch(q.id, { checklist: (q.checklist ?? []).filter((x) => x.id !== item.id) })}>Retirer</button>
+                    </div>
+                  ))}
+                  {(q.checklist?.length ?? 0) < EXAM_LIMITS.checklistItems && (
+                    <button type="button" className={`${SMALL} self-start`} onClick={() => patch(q.id, { checklist: [...(q.checklist ?? []), { id: newId("c"), label: "" }] })}>+ Ajouter un point</button>
+                  )}
+                </div>
+              </div>
+            )}
+            {q.type !== "criterion" && !isLayout(q.type) && !isChoice(q.type) && <p className="text-[12px] text-slate-500">Réponse libre : corrigée à la main par l&apos;examinateur.</p>}
           </div>
         ))}
-        <button type="button" className={`${SMALL} self-start`} onClick={() => setQuestions((p) => [...p, practical ? { id: newId("q"), type: "criterion", prompt: "", situation: "", imageId: null, points: 1 } : { id: newId("q"), type: "single", prompt: "", situation: "", imageId: null, points: 1, options: [{ id: newId("o"), label: "Choix 1", correct: true }, { id: newId("o"), label: "Choix 2", correct: false }] }])}>
-          {practical ? "+ Ajouter un critère" : "+ Ajouter une question"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={SMALL} onClick={() => setQuestions((p) => [...p, practical ? { id: newId("q"), type: "criterion", prompt: "", situation: "", imageId: null, points: 1 } : { id: newId("q"), type: "single", prompt: "", situation: "", imageId: null, points: 1, options: [{ id: newId("o"), label: "Choix 1", correct: true }, { id: newId("o"), label: "Choix 2", correct: false }] }])}>
+            {practical ? "+ Ajouter un critère" : "+ Ajouter une question"}
+          </button>
+          {practical && (
+            <>
+              <button type="button" className={SMALL} onClick={() => setQuestions((p) => [...p, { id: newId("q"), type: "heading", prompt: "", situation: "", imageId: null, points: 0 }])}>+ Nom de catégorie</button>
+              <button type="button" className={SMALL} onClick={() => setQuestions((p) => [...p, { id: newId("q"), type: "note", prompt: "", situation: "", imageId: null, points: 0 }])}>+ Texte explicatif</button>
+            </>
+          )}
+        </div>
       </section>
 
       <div className="flex items-center gap-3 sticky bottom-0 bg-white/90 py-3 border-t border-slate-200">

@@ -2,8 +2,11 @@ import { parseFlagCodes } from "./access-rules";
 import {
   EXAM_LIMITS,
   QUESTION_TYPES,
+  gradableQuestions,
   isChoice,
+  isLayout,
   type AnswerValue,
+  type ChecklistItem,
   type ExamKind,
   type ExamOption,
   type ExamQuestion,
@@ -98,18 +101,33 @@ export function parseExamInput(raw: unknown): Result<ExamInput> {
     if (!prompt.ok) return prompt;
     const situation = text(q.situation, `${label} : la mise en situation`, EXAM_LIMITS.situation, false);
     if (!situation.ok) return situation;
-    const pts = points(q.points ?? 1, EXAM_LIMITS.maxPoints, `${label} : les points`);
+    const pts = isLayout(type) ? ({ ok: true, value: 0 } as const) : points(q.points ?? 1, EXAM_LIMITS.maxPoints, `${label} : les points`);
     if (!pts.ok) return pts;
     let imageId: string | null = null;
     if (q.imageId !== null && q.imageId !== undefined && q.imageId !== "") {
       if (typeof q.imageId !== "string" || !UUID_PATTERN.test(q.imageId)) return fail(`${label} : image invalide.`);
       imageId = q.imageId;
     }
-    if ((kind === "practical") !== (type === "criterion")) {
-      return fail(kind === "practical" ? `${label} : un examen pratique ne contient que des critères pratiques.` : `${label} : le type « critère pratique » est réservé aux examens pratiques.`);
+    const practicalType = type === "criterion" || isLayout(type);
+    if ((kind === "practical") !== practicalType) {
+      return fail(kind === "practical" ? `${label} : un examen pratique ne contient que des critères, des noms de catégorie et des textes explicatifs.` : `${label} : ce type est réservé aux examens pratiques.`);
     }
     const question: ExamQuestion = { id: q.id, type, prompt: prompt.value, situation: situation.value, imageId, points: pts.value };
     if (type === "criterion" && q.eliminatory === true) question.eliminatory = true;
+    if (type === "criterion" && Array.isArray(q.checklist) && q.checklist.length > 0) {
+      if (q.checklist.length > EXAM_LIMITS.checklistItems) return fail(`${label} : ${EXAM_LIMITS.checklistItems} points de checklist au maximum.`);
+      const itemIds = new Set<string>();
+      const checklist: ChecklistItem[] = [];
+      for (const rawItem of q.checklist) {
+        const item = rawItem as Record<string, unknown>;
+        if (typeof item?.id !== "string" || !ID_PATTERN.test(item.id) || itemIds.has(item.id)) return fail(`${label} : identifiant de checklist invalide.`);
+        itemIds.add(item.id);
+        const itemLabel = text(item.label, `${label} : un point de checklist`, EXAM_LIMITS.checklistLabel, true);
+        if (!itemLabel.ok) return itemLabel;
+        checklist.push({ id: item.id, label: itemLabel.value });
+      }
+      question.checklist = checklist;
+    }
     if (isChoice(type)) {
       if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > EXAM_LIMITS.options) {
         return fail(`${label} : prévois entre 2 et ${EXAM_LIMITS.options} choix.`);
@@ -192,7 +210,7 @@ export function autoScore(q: ExamQuestion, answer: AnswerValue | undefined): num
 export function parseGrades(snapshot: ExamSnapshot, raw: unknown): Result<Record<string, Grade>> {
   const out: Record<string, Grade> = {};
   const given = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  for (const q of snapshot.questions) {
+  for (const q of gradableQuestions(snapshot.questions)) {
     const g = given[q.id] as Record<string, unknown> | undefined;
     if (!g) continue;
     let pts: number | null = null;
@@ -204,6 +222,22 @@ export function parseGrades(snapshot: ExamSnapshot, raw: unknown): Result<Record
     const comment = text(g.comment, "Le commentaire", EXAM_LIMITS.comment, false);
     if (!comment.ok) return comment;
     out[q.id] = { points: pts, comment: comment.value };
+  }
+  return { ok: true, value: out };
+}
+
+/** Cases cochées de la checklist de chaque critère : seuls les identifiants de la checklist du critère sont acceptés. */
+export function parseChecks(snapshot: ExamSnapshot, raw: unknown): Result<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  const given = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  for (const q of snapshot.questions) {
+    if (!q.checklist?.length) continue;
+    const value = given[q.id];
+    if (value === undefined) continue;
+    if (!Array.isArray(value)) return fail("Checklist invalide.");
+    const valid = new Set(q.checklist.map((i) => i.id));
+    const ids = value.filter((v): v is string => typeof v === "string" && valid.has(v));
+    out[q.id] = q.checklist.map((i) => i.id).filter((id) => ids.includes(id));
   }
   return { ok: true, value: out };
 }

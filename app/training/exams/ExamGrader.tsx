@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ExamQuestionHead } from "@/components/ExamQuestionHead";
-import { EXAM_LIMITS, answerLines, formatPoints, isChoice, totalPoints, type Attempt, type Grade, type Verdict } from "@/lib/exams-types";
+import { EXAM_LIMITS, answerLines, formatPoints, gradableQuestions, isChoice, totalPoints, type Attempt, type Grade, type Verdict } from "@/lib/exams-types";
 import { autoScore } from "@/lib/exams-validation";
 import { deletePracticalDraftAction, reopenResultAction, saveGradingAction, sendResultAction } from "./review/actions";
 
@@ -16,13 +16,25 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
   const locked = attempt.status === "sent";
   const practical = snapshot.kind === "practical";
 
+  const gradable = gradableQuestions(snapshot.questions);
+  // Cases cochées de chaque checklist (enregistrées dans les réponses du passage).
+  const [checks, setChecks] = useState<Record<string, string[]>>(() => {
+    const out: Record<string, string[]> = {};
+    for (const q of gradable) if (q.checklist?.length) out[q.id] = Array.isArray(attempt.answers[q.id]) ? (attempt.answers[q.id] as string[]) : [];
+    return out;
+  });
+
   // Valeurs de départ : la note déjà enregistrée, sinon la suggestion automatique (choix) ou rien (texte).
   const [grades, setGrades] = useState<Record<string, { points: string; comment: string; suggested: boolean }>>(() => {
     const out: Record<string, { points: string; comment: string; suggested: boolean }> = {};
-    for (const q of snapshot.questions) {
+    for (const q of gradable) {
       const saved: Grade | undefined = attempt.grades[q.id];
       if (saved && saved.points !== null) out[q.id] = { points: String(saved.points), comment: saved.comment, suggested: false };
-      else {
+      else if (q.checklist?.length) {
+        // Checklist : tout coché = points complets, sinon 0 (suggestion, modifiable à la main).
+        const all = q.checklist.every((i) => (checks[q.id] ?? []).includes(i.id));
+        out[q.id] = { points: String(all ? q.points : 0), comment: saved?.comment ?? "", suggested: true };
+      } else {
         const auto = autoScore(q, attempt.answers[q.id]);
         out[q.id] = { points: auto === null ? "" : String(auto), comment: saved?.comment ?? "", suggested: auto !== null };
       }
@@ -35,17 +47,28 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const max = totalPoints(snapshot.questions);
-  const got = Math.round(snapshot.questions.reduce((n, q) => n + (Number(grades[q.id].points) || 0), 0) * 100) / 100;
+  const got = Math.round(gradable.reduce((n, q) => n + (Number(grades[q.id].points) || 0), 0) * 100) / 100;
   // Critères éliminatoires non validés en totalité : l'examen ne peut pas être « réussi ».
-  const failedEliminatory = snapshot.questions.filter((q) => q.eliminatory && (Number(grades[q.id].points) || 0) < q.points);
+  const failedEliminatory = gradable.filter((q) => q.eliminatory && (Number(grades[q.id].points) || 0) < q.points);
   const percent = max ? Math.round((got / max) * 100) : 0;
   const thresholdPoints = snapshot.thresholdPercent ? Math.round(((max * snapshot.thresholdPercent) / 100) * 100) / 100 : null;
 
   const payload = () => ({
     grades: Object.fromEntries(Object.entries(grades).map(([id, g]) => [id, { points: g.points === "" ? null : Number(g.points), comment: g.comment }])),
+    checks,
     verdict,
     comment,
   });
+
+  function toggleCheck(q: (typeof gradable)[number], itemId: string, on: boolean) {
+    const next = (q.checklist ?? []).map((i) => i.id).filter((id) => (id === itemId ? on : (checks[q.id] ?? []).includes(id)));
+    setChecks((c) => ({ ...c, [q.id]: next }));
+    // Tant que la note n'a pas été modifiée à la main, elle suit la checklist : tout coché = points complets.
+    if (grades[q.id].suggested) {
+      const all = (q.checklist ?? []).every((i) => next.includes(i.id));
+      setGrades((p) => ({ ...p, [q.id]: { ...p[q.id], points: String(all ? q.points : 0), suggested: true } }));
+    }
+  }
 
   async function run(work: () => Promise<{ ok: true } | { ok: false; error: string }>, success: string) {
     setBusy(true);
@@ -84,7 +107,10 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
       </div>
 
       <ol className="mt-5 flex flex-col gap-5">
-        {snapshot.questions.map((q, index) => {
+        {snapshot.questions.map((q, position) => {
+          if (q.type === "heading") return <li key={q.id} data-testid="grade-layout" className="list-none pt-2"><h2 className="text-[15px] font-bold uppercase text-slate-800 border-b-2 border-slate-800 pb-1">{q.prompt}</h2></li>;
+          if (q.type === "note") return <li key={q.id} data-testid="grade-layout" className="list-none text-[13px] italic text-slate-700 whitespace-pre-wrap">{q.prompt}</li>;
+          const index = snapshot.questions.slice(0, position).filter((x) => !(x.type === "heading" || x.type === "note")).length;
           const answer = attempt.answers[q.id];
           const picked = Array.isArray(answer) ? answer : answer ? [answer as string] : [];
           const g = grades[q.id];
@@ -92,6 +118,19 @@ export function ExamGrader({ attempt }: { attempt: Attempt }) {
             <li key={q.id} data-testid="grade-question" className="border border-slate-200 rounded-lg p-4 flex flex-col gap-2">
               <ExamQuestionHead question={q} index={index} />
               {q.eliminatory && <span className="self-start text-[11px] font-bold uppercase bg-red-50 text-red-700 border border-red-200 rounded px-2 py-0.5">Critère éliminatoire — à valider en totalité</span>}
+              {q.checklist && q.checklist.length > 0 && (
+                <fieldset data-testid="checklist" className="border border-slate-200 rounded bg-slate-50 px-3 py-2" disabled={locked}>
+                  <legend className="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1">À vérifier ({(checks[q.id] ?? []).length} / {q.checklist.length})</legend>
+                  <div className="flex flex-col gap-1">
+                    {q.checklist.map((item) => (
+                      <label key={item.id} className="flex items-start gap-2 text-[14px] text-slate-900 cursor-pointer">
+                        <input type="checkbox" className="mt-1" checked={(checks[q.id] ?? []).includes(item.id)} onChange={(e) => toggleCheck(q, item.id, e.target.checked)} />
+                        <span>{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
               {practical ? null : isChoice(q.type) ? (
                 <ul className="flex flex-col gap-1 text-[13px]">
                   {q.options?.map((o) => {

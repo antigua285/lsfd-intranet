@@ -3,6 +3,7 @@ import { TrailFromParams } from "@/components/TrailFromParams";
 import { notFound, redirect } from "next/navigation";
 import { canManageWith, getAccessContext, isTrainer } from "@/lib/access";
 import { isMissingExamsTableError, listExams } from "@/lib/exams";
+import { gradableQuestions } from "@/lib/exams-types";
 import { listUsers } from "@/lib/users";
 import { StartPractical, type PracticalExam } from "./StartPractical";
 
@@ -34,8 +35,8 @@ async function Content() {
   let exams: PracticalExam[] = [];
   try {
     exams = (await listExams())
-      .filter((e) => e.kind === "practical" && e.published && e.questions.length > 0 && canManageWith(ctx, e.manageFlags))
-      .map((e) => ({ id: e.id, title: e.title, criteria: e.questions.length }));
+      .filter((e) => e.kind === "practical" && e.published && gradableQuestions(e.questions).length > 0 && canManageWith(ctx, e.manageFlags))
+      .map((e) => ({ id: e.id, title: e.title, criteria: gradableQuestions(e.questions).length }));
   } catch (error) {
     if (!isMissingExamsTableError(error)) throw error;
     return <p className="text-[13px] text-slate-600">Lance <code className="bg-slate-100 px-1 rounded">npm run db:setup</code> depuis ton PC, puis recharge.</p>;
