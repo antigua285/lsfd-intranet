@@ -143,6 +143,41 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
+  // Drill Tower (académie des recrues) : promotions, appartenance, calendrier des formations.
+  // DTRECRUIT = recrue en académie ; la catégorie « drill-tower » est réservée à DTRECRUIT + TD (modifiable dans Accès & flags).
+  `INSERT INTO flags (code, name, description) VALUES
+     ('DTRECRUIT', 'Recrue Drill Tower', 'Recrue en académie : accède uniquement à la catégorie Drill Tower'),
+     ('PROB', 'Probation', 'Pompier en probation : possède un carnet de probation')
+   ON CONFLICT (code) DO NOTHING`,
+  `INSERT INTO module_access (module_key, flags) VALUES ('drill-tower', ARRAY['DTRECRUIT','TD']) ON CONFLICT (module_key) DO NOTHING`,
+  `CREATE TABLE IF NOT EXISTS drill_cohorts (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         text NOT NULL,
+    starts_on    date,
+    graduated_at timestamptz,
+    created_at   timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS drill_members (
+    user_id   uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    cohort_id uuid NOT NULL REFERENCES drill_cohorts(id) ON DELETE CASCADE,
+    added_at  timestamptz NOT NULL DEFAULT now(),
+    graduated_at timestamptz
+  )`,
+  `CREATE TABLE IF NOT EXISTS drill_events (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title       text NOT NULL,
+    description text NOT NULL DEFAULT '',
+    starts_at   timestamptz NOT NULL,
+    ends_at     timestamptz,
+    location    text NOT NULL DEFAULT '',
+    instructor  text NOT NULL DEFAULT '',
+    mandatory   boolean NOT NULL DEFAULT false,
+    canceled    boolean NOT NULL DEFAULT false,
+    cohort_id   uuid REFERENCES drill_cohorts(id) ON DELETE CASCADE,
+    created_by  uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at  timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS drill_events_start_idx ON drill_events (starts_at)`,
   // Formation par flags : « gérée par » (qui peut modifier / corriger) et « visible par » (qui peut réviser).
   // Liste vide = comportement d'origine (toute la TD gère ; tout le monde révise).
   `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,

@@ -1,5 +1,6 @@
 import { APP_MODULES } from "@/config/navigation";
 import { hasAccess, moduleKey } from "./access-rules";
+import { DRILL_FLAG, DRILL_LINK } from "./drill-shared";
 import { query } from "./db";
 
 /**
@@ -22,9 +23,13 @@ export function modulesForPath(pathname: string) {
  * rendent indépendamment de lui).
  * Tant que les tables de flags n'existent pas (db:setup pas encore lancé), tout reste ouvert.
  */
+/** Adresses des espaces du site qu'une recrue en académie ne doit pas ouvrir, même si aucune catégorie ne les couvre. */
+const RECRUIT_BLOCKED = ["/training", "/forms", "/reports", "/map", "/organization", "/documents", "/admin"];
+
 export async function isPathAllowed(userId: string, pathname: string): Promise<boolean> {
   const mods = modulesForPath(pathname);
-  if (mods.length === 0) return true;
+  const blockedForRecruit = RECRUIT_BLOCKED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (mods.length === 0 && !blockedForRecruit) return true;
   try {
     const [user] = await query<{ isAdmin: boolean; flags: string[] }>(
       `SELECT u.is_admin AS "isAdmin",
@@ -34,6 +39,9 @@ export async function isPathAllowed(userId: string, pathname: string): Promise<b
     );
     if (!user) return false;
     if (user.isAdmin) return true;
+    // Recrue en académie (DTRECRUIT sans TD) : uniquement la catégorie Drill Tower.
+    if (user.flags.includes(DRILL_FLAG) && !user.flags.includes("TD") && !mods.some((m) => m.link === DRILL_LINK)) return false;
+    if (mods.length === 0) return true;
     const rules = await query<{ key: string; flags: string[] }>(
       `SELECT module_key AS key, flags FROM module_access WHERE module_key = ANY($1::text[])`,
       [mods.map(moduleKey)]

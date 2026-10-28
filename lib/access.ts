@@ -1,3 +1,4 @@
+import { DRILL_FLAG, DRILL_LINK } from "./drill-shared";
 import "server-only";
 import { cache } from "react";
 import { APP_MODULES } from "@/config/navigation";
@@ -173,13 +174,21 @@ export async function getVisibleModules() {
   if (!ctx) return [];
   // Même règle que proxy.ts (module-gate) : une catégorie n'est visible que si son adresse est ouverte,
   // c'est-à-dire si TOUTES les catégories qui partagent ce lien le sont.
+  const recruit = isRecruitOnly(ctx.user.isAdmin, ctx.flags);
   const open = (mod: (typeof APP_MODULES)[number]) =>
     modulesForPath(mod.link).every((m) => canSee(ctx, ctx.rules.get(moduleKey(m))?.flags ?? []));
-  return orderModules(APP_MODULES, ctx.rules).filter((mod) => (modulesForPath(mod.link).length ? open(mod) : canSee(ctx, ctx.rules.get(moduleKey(mod))?.flags ?? [])));
+  return orderModules(APP_MODULES, ctx.rules).filter((mod) => !recruit || mod.link === DRILL_LINK).filter((mod) => (modulesForPath(mod.link).length ? open(mod) : canSee(ctx, ctx.rules.get(moduleKey(mod))?.flags ?? [])));
 }
 
 /** Formateurs : modérateurs ou détenteurs du flag TD (relu en base à chaque appel, pour les actions serveur). */
 export const TRAINER_FLAG = "TD";
+
+/**
+ * Recrue en académie (flag DTRECRUIT, ni TD ni modérateur) : elle n'a accès qu'à sa propre catégorie, la Drill Tower.
+ */
+export function isRecruitOnly(isAdmin: boolean, flags: readonly string[]): boolean {
+  return !isAdmin && flags.includes(DRILL_FLAG) && !flags.includes(TRAINER_FLAG);
+}
 
 export function isTrainer(ctx: AccessContext): boolean {
   return ctx.user.isAdmin || ctx.flags.includes(TRAINER_FLAG);
