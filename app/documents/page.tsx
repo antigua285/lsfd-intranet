@@ -11,6 +11,7 @@ const DOCUMENT_CATEGORIES = [
     documents: [
       { id: 10, title: "INTERNAL REGULATION & ETHICAL AND MORAL STANDARDS", date: "2024", type: "DOC", link: "/documents/ethics" },
       { id: 11, title: "RADIO PROCEDURES", date: "2025", type: "DOC", link: "/documents/radio" },
+      { id: 12, title: "UNIFORM SPECIFICATION", date: "2023", type: "DOC", link: "/documents/uniform" },
     ]
   },
   {
@@ -32,6 +33,7 @@ const DOCUMENT_CATEGORIES = [
       { id: 7, title: "B7 - VENTILATION TECHNIQUES", date: "2026", type: "PDF", link: "/documents/fire3" },
       { id: 8, title: "B8 - SEARCH & RESCUE", date: "2026", type: "PDF", link: "/documents/fire4" },
       { id: 9, title: "B9 - OPERATIONAL SPECIFICITIES", date: "2026", type: "PDF", link: "/documents/fire5" },
+      { id: 13, title: "B10 - VEHICLE RESCUE", date: "2026", type: "PDF", link: "/documents/vehiclerescue" },
     ]
   }
 ];
