@@ -15,7 +15,7 @@ export default function DrillTowerPage() {
     <div className="max-w-4xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Drill Tower" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Drill Tower</h1>
-      <p className="text-sm text-slate-500 mb-6">Académie : calendrier des formations, contacts de la Training Division et cartes de révision.</p>
+      <p className="text-sm text-slate-500 mb-6">Merci de n'utiliser les contacts qu'en cas de besoin absolu.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
         <Content />
       </Suspense>

@@ -6,9 +6,9 @@ import { countAssignedPending } from "@/lib/exams";
 export const metadata = { title: "Formation | LSFD Intranet" };
 
 const SECTIONS = [
-  { href: "/training/cards", title: "Cartes de révision", desc: "Révise la documentation question par question." },
-  { href: "/training/exams", title: "Examens", desc: "Passe un examen avec ta clé d'accès et consulte tes résultats." },
-  { href: "/training/probation", title: "Probation", desc: "Carnet de probation : compétences validées, commentaires et passage en phase deux." },
+  { href: "/training/cards", title: "Cartes de révision", desc: "Accéder aux révisions via flashcards." },
+  { href: "/training/exams", title: "Examens", desc: "Accéder à l'espace examens et résultats." },
+  { href: "/training/probation", title: "Probation", desc: "Accéder au carnet de suivi des compétences." },
 ];
 
 async function PendingBadge() {
@@ -31,7 +31,7 @@ async function TdCard() {
     <li className="sm:col-span-2">
       <Link href="/training/td" data-testid="td-card" className="block border border-[#0d2644] bg-slate-50 rounded-lg p-4 hover:bg-slate-100 transition-colors">
         <p className="text-[15px] font-bold text-[#0d2644]">Espace TD</p>
-        <p className="text-[13px] text-slate-500">Correction des examens, clés et assignation, carnets de probation, cartes de révision.</p>
+        <p className="text-[13px] text-slate-500">Accéder à la gestion des formations et examens.</p>
       </Link>
     </li>
   );

@@ -30,7 +30,7 @@ export const APP_MODULES = [
   {
     id: 5,
     title: "Carte du département",
-    desc: "Stations, bornes incendie, bâtiments à risque, météo et secteurs",
+    desc: "Informations relatives aux secteurs et infrastructures",
     link: "/map",
     image: "/images/opmap.png",
     iconPath: "M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"
@@ -46,15 +46,15 @@ export const APP_MODULES = [
   {
     id: 7,
     title: "Formation",
-    desc: "Espace formateurs et probatoires",
+    desc: "Espace FTC et probatoires",
     link: "/training",
     image: "/images/trn.png",
     iconPath: "M4.26 10.147a60.436 60.436 0 0 0-.491 6.347A48.627 48.627 0 0 1 12 20.904a48.627 48.627 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5"
   },
   {
     id: 8,
-    title: "DRILL TOWER",
-    desc: "Calendrier des formations, contacts et révision",
+    title: "Drill Tower",
+    desc: "Calendrier des formations et révisions",
     link: "/drill-tower",
     image: "/images/drilltower.png",
     iconPath: "M12 3v3m0 0 3 2.25M12 6 9 8.25M6.75 21V10.5h10.5V21M9.75 21v-4.5h4.5V21M9 12.75h.008v.008H9v-.008Zm3 0h.008v.008H12v-.008Zm3 0h.008v.008H15v-.008Z"
