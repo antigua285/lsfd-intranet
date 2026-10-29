@@ -139,7 +139,7 @@ export function CalendarView({ year, month, weeks, events, today, canEdit, showA
                         <li key={`${e.source}:${e.id}`}>
                           <button type="button" data-testid="cal-event" data-cat={e.category} onClick={() => setSelected(`${e.source}:${e.id}`)} title={e.title}
                             className={`w-full text-left truncate text-[11px] font-bold rounded px-1.5 py-0.5 border-l-4 ${e.canceled ? "line-through opacity-60" : ""}`}
-                            style={{ background: `${c.color}1f`, borderColor: c.color, color: c.color }}>
+                            style={{ background: `${c.color}26`, borderColor: c.color, color: c.ink }}>
                             {!e.allDay && <span className="font-normal">{new Date(e.startsAt).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" })} </span>}{e.title}
                           </button>
                         </li>
@@ -160,7 +160,7 @@ export function CalendarView({ year, month, weeks, events, today, canEdit, showA
         <aside data-testid="cal-detail" className="mt-4 border-2 rounded-lg p-4 bg-white" style={{ borderColor: catOf(current.category).color }}>
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-bold uppercase" style={{ color: catOf(current.category).color }}>{catOf(current.category).label}{current.canceled ? " · annulée" : ""}</p>
+              <p className="text-[12px] font-bold uppercase" style={{ color: catOf(current.category).ink }}>{catOf(current.category).label}{current.canceled ? " · annulée" : ""}</p>
               <p className="text-[17px] font-bold text-slate-900">{current.title}</p>
               <p className="text-[13px] text-slate-700 mt-1">{fmtDay(current.startsAt)} · {timeLabel(current)}</p>
               {current.location && <p className="text-[13px] text-slate-700">Lieu : <strong>{current.location}</strong></p>}

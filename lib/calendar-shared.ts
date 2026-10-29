@@ -5,15 +5,14 @@ export const CALENDAR_FLAG = "OFFICER";
 export const CALENDAR_LINK = "/calendar";
 export const CAL_LIMITS = { title: 120, description: 1000, location: 120 };
 
-export type CalCategory = "formation" | "academie" | "loisir" | "evenement" | "reunion" | "ceremonie";
+export type CalCategory = "formation" | "academie" | "loisir" | "evenement";
 
-export const CAL_CATEGORIES: { key: CalCategory; label: string; hint: string; color: string; manual: boolean }[] = [
-  { key: "formation", label: "Formation générale", hint: "Formations ouvertes à tous", color: "#1d4ed8", manual: true },
-  { key: "academie", label: "Formation académie", hint: "Alimentée par la Drill Tower (visible TD / officiers)", color: "#c2410c", manual: false },
-  { key: "loisir", label: "Loisirs", hint: "Golf invitational, barbecue, sorties…", color: "#15803d", manual: true },
-  { key: "evenement", label: "Événement", hint: "Événements divers du département", color: "#475569", manual: true },
-  { key: "reunion", label: "Réunion", hint: "Briefings, réunions d'état-major", color: "#7e22ce", manual: true },
-  { key: "ceremonie", label: "Cérémonie", hint: "Remises de médailles, promotions, hommages", color: "#b91c1c", manual: true },
+/** `color` = couleur de la catégorie ; `ink` = version foncée pour le texte (lisible sur fond clair). */
+export const CAL_CATEGORIES: { key: CalCategory; label: string; hint: string; color: string; ink: string; manual: boolean }[] = [
+  { key: "formation", label: "IS TRAIN", hint: "Formations générales", color: "#0da9d4", ink: "#06607a", manual: true },
+  { key: "academie", label: "RCT TRAIN", hint: "Formations académie : alimentées par la Drill Tower (visibles TD / officiers)", color: "#ed9f0e", ink: "#8a5a00", manual: false },
+  { key: "loisir", label: "EVENT", hint: "Événements loisirs : golf invitational, sorties…", color: "#a90dd4", ink: "#7a0a9a", manual: true },
+  { key: "evenement", label: "GENERAL", hint: "Événements généraux du département", color: "#0d2644", ink: "#0d2644", manual: true },
 ];
 export const catOf = (k: string) => CAL_CATEGORIES.find((c) => c.key === k) ?? CAL_CATEGORIES[3];
 
