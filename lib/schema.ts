@@ -178,6 +178,21 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at  timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS drill_events_start_idx ON drill_events (starts_at)`,
+  // Calendrier général : événements posés par les OFFICER (les formations de la Drill Tower s'y ajoutent automatiquement).
+  `INSERT INTO flags (code, name) VALUES ('OFFICER', 'Officiers') ON CONFLICT DO NOTHING`,
+  `CREATE TABLE IF NOT EXISTS calendar_events (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title       text NOT NULL,
+    category    text NOT NULL DEFAULT 'evenement',
+    description text NOT NULL DEFAULT '',
+    location    text NOT NULL DEFAULT '',
+    starts_at   timestamptz NOT NULL,
+    ends_at     timestamptz,
+    all_day     boolean NOT NULL DEFAULT false,
+    created_by  uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at  timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS calendar_events_start_idx ON calendar_events (starts_at)`,
   // Formation par flags : « gérée par » (qui peut modifier / corriger) et « visible par » (qui peut réviser).
   // Liste vide = comportement d'origine (toute la TD gère ; tout le monde révise).
   `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,

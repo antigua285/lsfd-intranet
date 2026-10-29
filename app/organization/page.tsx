@@ -36,7 +36,7 @@ async function OrganizationContent() {
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-bold text-slate-800 uppercase">
-            Organization &amp; Personnel Directory
+            ORGANISATION
           </h1>
           <p className="text-sm text-slate-500">
             Organisation actuelle du département et affectation du personnel.
