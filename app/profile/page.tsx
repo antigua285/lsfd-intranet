@@ -54,8 +54,15 @@ async function ProfileContent() {
           </dl>
         </div>
         <p className="text-[12px] text-slate-400 mt-4">
-          Pour modifier ces informations (grade, station, photo), contacte un modérateur.
+          La photo se change via un modérateur ; le reste se modifie depuis ta fiche.
         </p>
+        <Link
+          href={`/organization/personnel/${user.id}`}
+          data-testid="btn-my-sheet"
+          className="inline-block mt-3 bg-[#0d2644] text-white text-[13px] font-bold rounded px-4 py-2 hover:bg-[#143a66] transition-colors"
+        >
+          Ouvrir ma fiche
+        </Link>
       </WidgetWrapper>
 
       {user.isAdmin && (

@@ -211,6 +211,55 @@ export const SCHEMA_STATEMENTS: string[] = [
        FROM (SELECT DISTINCT ON (lower(trim(grade))) trim(grade) AS g FROM users WHERE trim(grade) <> '' ORDER BY lower(trim(grade))) t
       WHERE NOT EXISTS (SELECT 1 FROM ranks)`,
   `UPDATE users SET rank_id = r.id FROM ranks r WHERE users.rank_id IS NULL AND lower(r.name) = lower(trim(users.grade))`,
+  // Fiche de personnel (base de données du personnel). Une ligne par compte ; les listes ont leurs propres tables.
+  `CREATE TABLE IF NOT EXISTS profiles (
+    user_id           uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    fp_id             text NOT NULL UNIQUE,
+    db_status         text NOT NULL DEFAULT 'actif',
+    badge             text NOT NULL DEFAULT '',
+    birth_date        date,
+    languages         text NOT NULL DEFAULT '',
+    phone2            text,
+    address           text NOT NULL DEFAULT '',
+    employment_status text NOT NULL DEFAULT 'actif',
+    hired_on          date,
+    bureau            text NOT NULL DEFAULT 'Central'
+  )`,
+  `INSERT INTO profiles (user_id, fp_id)
+     SELECT id, 'FP-' || to_char(created_at, 'YYYY') || '-' || lpad((floor(random() * 100000))::int::text, 5, '0') FROM users
+   ON CONFLICT DO NOTHING`,
+  `CREATE TABLE IF NOT EXISTS profile_history (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    on_date    date NOT NULL,
+    rank       text NOT NULL DEFAULT '',
+    assignment text NOT NULL DEFAULT ''
+  )`,
+  `CREATE TABLE IF NOT EXISTS profile_assignments (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    unit       text NOT NULL,
+    started_on date NOT NULL,
+    ended_on   date
+  )`,
+  `CREATE TABLE IF NOT EXISTS profile_discipline (
+    id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    on_date  date NOT NULL,
+    sanction text NOT NULL,
+    details  text NOT NULL DEFAULT ''
+  )`,
+  `CREATE TABLE IF NOT EXISTS profile_contacts (
+    id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name    text NOT NULL,
+    address text NOT NULL DEFAULT '',
+    phone   text NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS profile_history_user_idx ON profile_history (user_id)`,
+  `CREATE INDEX IF NOT EXISTS profile_assignments_user_idx ON profile_assignments (user_id)`,
+  `CREATE INDEX IF NOT EXISTS profile_discipline_user_idx ON profile_discipline (user_id)`,
+  `CREATE INDEX IF NOT EXISTS profile_contacts_user_idx ON profile_contacts (user_id)`,
   // Formation par flags : « gérée par » (qui peut modifier / corriger) et « visible par » (qui peut réviser).
   // Liste vide = comportement d'origine (toute la TD gère ; tout le monde révise).
   `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,

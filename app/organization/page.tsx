@@ -36,12 +36,20 @@ async function OrganizationContent() {
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
           <h1 className="text-xl font-bold text-slate-800 uppercase">
-            ORGANISATION
+            Organization &amp; Personnel Directory
           </h1>
           <p className="text-sm text-slate-500">
             Organisation actuelle du département et affectation du personnel.
           </p>
         </div>
+        <div className="flex gap-2 shrink-0">
+        <Link
+          href="/organization/personnel"
+          data-testid="btn-personnel"
+          className="shrink-0 bg-[#0d2644] text-white text-[13px] font-bold uppercase tracking-wide rounded px-4 py-2 hover:bg-[#143a66] transition-colors"
+        >
+          Personnel
+        </Link>
         {me.isAdmin && !missingTable && (
           <Link
             href="/organization/edit"
@@ -50,6 +58,7 @@ async function OrganizationContent() {
             Edit page
           </Link>
         )}
+        </div>
       </div>
 
       {missingTable ? (

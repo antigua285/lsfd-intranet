@@ -108,7 +108,7 @@ export async function moveRank(id: string, direction: "up" | "down"): Promise<bo
  * Affecte un rang à un compte (null = aucun) : le grade affiché prend le nom du rang, et les flags
  * liés à l'ancien rang sont retirés puis ceux du nouveau ajoutés.
  */
-export async function setUserRank(userId: string, rankId: string | null): Promise<boolean> {
+export async function setUserRank(userId: string, rankId: string | null, allowedFlags?: readonly string[]): Promise<boolean> {
   const current = (await query<{ rankId: string | null }>(`SELECT rank_id AS "rankId" FROM users WHERE id = $1`, [userId]))[0];
   if (!current) return false;
   if ((current.rankId ?? null) === rankId) return true;
@@ -116,11 +116,14 @@ export async function setUserRank(userId: string, rankId: string | null): Promis
   const newRank = rankId ? await getRank(rankId) : null;
   if (rankId && !newRank) return false;
   await query(`UPDATE users SET rank_id = $2, grade = COALESCE($3, grade) WHERE id = $1`, [userId, rankId, newRank?.name ?? null]);
+  // allowedFlags : un officier (non modérateur) ne peut donner ou retirer que les flags qu'il possède lui-même.
+  const permitted = (f: string) => !allowedFlags || allowedFlags.includes(f);
   const keep = new Set(newRank?.flags ?? []);
-  const drop = (oldRank?.flags ?? []).filter((f) => !keep.has(f));
+  const drop = (oldRank?.flags ?? []).filter((f) => !keep.has(f) && permitted(f));
+  const grant = (newRank?.flags ?? []).filter(permitted);
   if (drop.length) await query(`DELETE FROM user_flags WHERE user_id = $1 AND flag = ANY($2::text[])`, [userId, drop]);
-  if (newRank?.flags.length) {
-    await query(`INSERT INTO user_flags (user_id, flag) SELECT $1, f FROM unnest($2::text[]) AS f ON CONFLICT DO NOTHING`, [userId, newRank.flags]);
+  if (grant.length) {
+    await query(`INSERT INTO user_flags (user_id, flag) SELECT $1, f FROM unnest($2::text[]) AS f ON CONFLICT DO NOTHING`, [userId, grant]);
   }
   return true;
 }
