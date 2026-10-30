@@ -16,7 +16,7 @@ export default function CalendarPage({ searchParams }: { searchParams: SP }) {
     <div className="max-w-6xl mx-auto w-full font-['Calibri','Arial',sans-serif]">
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Calendrier" }]} />
       <h1 className="text-xl font-bold text-slate-800 uppercase mt-1">Calendrier</h1>
-      <p className="text-sm text-slate-500 mb-5">Formations, événements et cérémonies du département.</p>
+      <p className="text-sm text-slate-500 mb-5">Calendrier des événements du département.</p>
       <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
         <Content searchParams={searchParams} />
       </Suspense>

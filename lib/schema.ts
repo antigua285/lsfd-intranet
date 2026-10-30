@@ -193,6 +193,24 @@ export const SCHEMA_STATEMENTS: string[] = [
     created_at  timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS calendar_events_start_idx ON calendar_events (starts_at)`,
+  // Rangs configurables depuis le panneau admin (remplacent le grade en texte libre).
+  // position : plus grand = plus haut dans la hiérarchie. flags : donnés automatiquement aux membres du rang.
+  `CREATE TABLE IF NOT EXISTS ranks (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         text NOT NULL,
+    abbreviation text NOT NULL DEFAULT '',
+    position     integer NOT NULL DEFAULT 0,
+    flags        text[] NOT NULL DEFAULT '{}',
+    created_at   timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS ranks_name_key ON ranks (lower(name))`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_id uuid REFERENCES ranks(id) ON DELETE SET NULL`,
+  // Import unique des grades existants comme rangs (seulement si aucun rang n'existe encore).
+  `INSERT INTO ranks (name, position)
+     SELECT g, (row_number() OVER (ORDER BY lower(g)))::int - 1
+       FROM (SELECT DISTINCT ON (lower(trim(grade))) trim(grade) AS g FROM users WHERE trim(grade) <> '' ORDER BY lower(trim(grade))) t
+      WHERE NOT EXISTS (SELECT 1 FROM ranks)`,
+  `UPDATE users SET rank_id = r.id FROM ranks r WHERE users.rank_id IS NULL AND lower(r.name) = lower(trim(users.grade))`,
   // Formation par flags : « gérée par » (qui peut modifier / corriger) et « visible par » (qui peut réviser).
   // Liste vide = comportement d'origine (toute la TD gère ; tout le monde révise).
   `ALTER TABLE flashcards ADD COLUMN IF NOT EXISTS flags text[] NOT NULL DEFAULT '{}'`,

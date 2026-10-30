@@ -3,6 +3,7 @@ import { Avatar } from "@/components/Avatar";
 import { WidgetWrapper } from "@/components/WidgetWrapper";
 import { isMissingAccessTableError, listAllUserFlags, listFlags, type Flag } from "@/lib/access";
 import { requireAdmin } from "@/lib/auth";
+import { isMissingRankTableError, listRanks, listUserRankIds } from "@/lib/ranks";
 import { listUsers } from "@/lib/users";
 import { AdminNav } from "@/components/AdminNav";
 import { CreateUserForm } from "./CreateUserForm";
@@ -36,12 +37,19 @@ async function AdminContent() {
   } catch (error) {
     if (!isMissingAccessTableError(error)) throw error;
   }
+  let ranks: { id: string; name: string }[] = [];
+  let userRanks = new Map<string, string>();
+  try {
+    [ranks, userRanks] = await Promise.all([listRanks().then((r) => r.map((x) => ({ id: x.id, name: x.name }))), listUserRankIds()]);
+  } catch (error) {
+    if (!isMissingRankTableError(error)) throw error;
+  }
   const flagChoices = allFlags.map((f) => ({ code: f.code, name: f.name }));
 
   return (
     <div className="flex flex-col gap-4">
       <WidgetWrapper title="Créer un compte">
-        <CreateUserForm />
+        <CreateUserForm ranks={ranks} />
       </WidgetWrapper>
 
       <WidgetWrapper title={`Comptes (${users.length})`}>
@@ -94,6 +102,8 @@ async function AdminContent() {
                   }}
                   isAdmin={user.isAdmin}
                   isSelf={user.id === me.id}
+                  ranks={ranks}
+                  rankId={userRanks.get(user.id) ?? null}
                 />
               </details>
             </li>

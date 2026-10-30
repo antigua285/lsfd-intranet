@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/auth";
 import { hashPassword } from "@/lib/password";
+import { getRank, isMissingRankTableError, setUserRank } from "@/lib/ranks";
 import { createUser, deleteUser, setAdmin, updatePassword, updateUserProfile } from "@/lib/users";
 import { UUID_PATTERN, checkPassword, parseNewUser, parseProfileUpdate } from "@/lib/validation";
 
@@ -33,6 +34,7 @@ function echo(formData: FormData, names: string[]): Record<string, string> {
 
 const CREATE_FIELDS = [
   "firstName",
+  "rankId",
   "lastName",
   "grade",
   "station",
@@ -41,7 +43,35 @@ const CREATE_FIELDS = [
   "phone",
   "isAdmin",
 ];
-const PROFILE_FIELDS = ["firstName", "lastName", "grade", "station", "username", "avatarUrl", "phone"];
+const PROFILE_FIELDS = ["rankId", "firstName", "lastName", "grade", "station", "username", "avatarUrl", "phone"];
+
+/**
+ * Rang choisi dans le formulaire : le grade affiché prend le nom du rang. Sans rang choisi (liste vide
+ * ou compte non classé), le grade du formulaire est conservé tel quel.
+ */
+async function pickRank(formData: FormData): Promise<{ rankId: string | null; error?: string }> {
+  const raw = String(formData.get("rankId") ?? "");
+  if (!raw) return { rankId: null };
+  if (!UUID_PATTERN.test(raw)) return { rankId: null, error: "Rang invalide." };
+  try {
+    const rank = await getRank(raw);
+    if (!rank) return { rankId: null, error: "Ce rang n'existe plus." };
+    formData.set("grade", rank.name);
+    return { rankId: rank.id };
+  } catch (error) {
+    if (isMissingRankTableError(error)) return { rankId: null };
+    throw error;
+  }
+}
+
+async function applyRank(userId: string, rankId: string | null) {
+  if (!rankId) return;
+  try {
+    await setUserRank(userId, rankId);
+  } catch (error) {
+    if (!isMissingRankTableError(error)) throw error;
+  }
+}
 
 export async function createUserAction(
   _previous: ActionState,
@@ -50,12 +80,15 @@ export async function createUserAction(
   await assertAdmin();
 
   const values = echo(formData, CREATE_FIELDS);
+  const picked = await pickRank(formData);
+  if (picked.error) return { error: picked.error, values };
   const parsed = parseNewUser(formData);
   if (!parsed.ok) return { error: parsed.error, values };
 
   const { password, ...rest } = parsed.value;
   const id = await createUser({ ...rest, passwordHash: await hashPassword(password) });
   if (!id) return { error: `L'identifiant « ${rest.username} » existe déjà.`, values };
+  await applyRank(id, picked.rankId);
 
   revalidatePath("/admin");
   return { success: `Compte « ${rest.username} » créé.` };
@@ -71,6 +104,8 @@ export async function updateProfileAction(
   if (!id) return { error: "Utilisateur invalide." };
 
   const values = echo(formData, PROFILE_FIELDS);
+  const picked = await pickRank(formData);
+  if (picked.error) return { error: picked.error, values };
   const parsed = parseProfileUpdate(formData);
   if (!parsed.ok) return { error: parsed.error, values };
 
@@ -79,6 +114,7 @@ export async function updateProfileAction(
     return { error: `L'identifiant « ${parsed.value.username} » est déjà utilisé.`, values };
   }
   if (result === "not_found") return { error: "Utilisateur introuvable.", values };
+  await applyRank(id, picked.rankId);
 
   revalidatePath("/admin");
   return { success: "Profil mis à jour." };

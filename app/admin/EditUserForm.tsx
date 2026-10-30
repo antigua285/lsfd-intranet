@@ -17,7 +17,7 @@ export type EditableProfile = {
   phone: string | null;
 };
 
-export function EditUserForm({ userId, profile }: { userId: string; profile: EditableProfile }) {
+export function EditUserForm({ userId, profile, ranks = [], rankId = null }: { userId: string; profile: EditableProfile; ranks?: { id: string; name: string }[]; rankId?: string | null }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     updateProfileAction,
     {}
@@ -40,8 +40,21 @@ export function EditUserForm({ userId, profile }: { userId: string; profile: Edi
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor={id("grade")} className={labelClass}>Grade</label>
-        <input id={id("grade")} name="grade" type="text" maxLength={60} required defaultValue={typed("grade", profile.grade)} className={inputClass} />
+        {ranks.length > 0 ? (
+          <>
+            <label htmlFor={id("rankId")} className={labelClass}>Rang</label>
+            <select id={id("rankId")} name="rankId" defaultValue={typed("rankId", rankId ?? "")} className={inputClass}>
+              {!rankId && <option value="">Non classé ({profile.grade})</option>}
+              {ranks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+            <input type="hidden" name="grade" value={profile.grade} />
+          </>
+        ) : (
+          <>
+            <label htmlFor={id("grade")} className={labelClass}>Grade</label>
+            <input id={id("grade")} name="grade" type="text" maxLength={60} required defaultValue={typed("grade", profile.grade)} className={inputClass} />
+          </>
+        )}
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor={id("station")} className={labelClass}>Station d&apos;affectation</label>

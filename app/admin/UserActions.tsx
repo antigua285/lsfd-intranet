@@ -27,11 +27,15 @@ export function UserActions({
   profile,
   isAdmin,
   isSelf,
+  ranks = [],
+  rankId = null,
 }: {
   userId: string;
   profile: EditableProfile;
   isAdmin: boolean;
   isSelf: boolean;
+  ranks?: { id: string; name: string }[];
+  rankId?: string | null;
 }) {
   const [resetState, resetAction, resetPending] = useActionState<ActionState, FormData>(resetPasswordAction, {});
   const [roleState, roleAction, rolePending] = useActionState<ActionState, FormData>(toggleAdminAction, {});
@@ -39,7 +43,7 @@ export function UserActions({
 
   return (
     <div className="flex flex-col gap-3 py-3">
-      <EditUserForm userId={userId} profile={profile} />
+      <EditUserForm userId={userId} profile={profile} ranks={ranks} rankId={rankId} />
 
       <hr className="border-slate-100" />
 

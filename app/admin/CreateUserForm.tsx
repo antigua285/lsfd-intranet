@@ -7,7 +7,7 @@ const inputClass =
   "w-full border border-slate-300 rounded px-3 py-1.5 text-[13px] text-slate-800 focus:outline-none focus:border-slate-500 shadow-sm";
 const labelClass = "text-[12px] font-bold text-slate-600";
 
-export function CreateUserForm() {
+export function CreateUserForm({ ranks = [] }: { ranks?: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     createUserAction,
     {}
@@ -34,8 +34,20 @@ export function CreateUserForm() {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="grade" className={labelClass}>Grade</label>
-        <input id="grade" name="grade" type="text" maxLength={60} placeholder="Ex. Captain" required defaultValue={saved("grade")} className={inputClass} />
+        {ranks.length > 0 ? (
+          <>
+            <label htmlFor="rankId" className={labelClass}>Rang</label>
+            <select id="rankId" name="rankId" required defaultValue={saved("rankId")} className={inputClass}>
+              <option value="" disabled>Choisir un rang…</option>
+              {ranks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </>
+        ) : (
+          <>
+            <label htmlFor="grade" className={labelClass}>Grade</label>
+            <input id="grade" name="grade" type="text" maxLength={60} placeholder="Ex. Captain" required defaultValue={saved("grade")} className={inputClass} />
+          </>
+        )}
       </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="station" className={labelClass}>Station d&apos;affectation</label>
