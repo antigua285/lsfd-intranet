@@ -102,7 +102,6 @@ export function SheetEditor({ sheet, perms, ranks, today }: { sheet: Sheet; perm
           </div>
         ) : (
           <Dl>
-            <Row label="Photo">{sheet.avatarUrl ? "Définie" : "Aucune"} <span className="text-[12px] text-slate-500">(modifiable par un modérateur)</span></Row>
             <Row label="Statut de la fiche"><span data-testid="db-status" className={sheet.dbStatus === "actif" ? "font-bold text-green-800" : "font-bold text-amber-700"}>{labelOf(DB_STATUSES, sheet.dbStatus)}</span></Row>
             <Row label="ID"><span className="font-mono">{sheet.fpId}</span></Row>
           </Dl>
