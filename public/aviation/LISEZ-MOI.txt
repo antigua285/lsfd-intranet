@@ -1,0 +1,13 @@
+CARTES AÉRONAUTIQUES (Air Operations)
+Déposez ici les 4 images (PNG, la plus grande résolution possible) :
+  lsx.png                     -> Los Santos Intl (LSX)            Airport Diagram
+  sda.png                     -> Sandy Shores Airfield (SDA)      Airport Diagram
+  gbc.png                     -> McKenzie / Grapeseed (GBC)       Airport Diagram
+  los-santos-sectional.png    -> Los Santos Sectional (VFR) / VOR-DME LSA
+
+Après le premier déploiement :
+ 1. Ouvrez chaque carte avec un compte AIROPSCMD et utilisez « Calibrer l'échelle » (deux points de distance connue).
+    Le sectional est préréglé à ~97,7 NM sur la largeur de l'image : à vérifier avec la règle de la carte.
+ 2. Placez les points (aérodromes, VOR-DME, points de report, LZ, points d'eau…) avec « Points de carte ».
+ 3. Les pilotes (flag AIROPS) utilisent « Préparer un vol ».
+Les noms de fichiers et la liste des cartes se modifient dans lib/airops-charts.ts (CHARTS).

@@ -438,4 +438,37 @@ export const SCHEMA_STATEMENTS: string[] = [
     updated_at  timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS airops_forms_idx ON airops_forms (kind, created_at DESC)`,
+  // Air Operations : cartes (étalonnage), points de carte et tracés de préparation de vol.
+  `CREATE TABLE IF NOT EXISTS airops_charts (
+    chart_key    text PRIMARY KEY,
+    nm_per_width double precision NOT NULL CHECK (nm_per_width > 0),
+    updated_by   text NOT NULL DEFAULT '',
+    updated_at   timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS airops_chart_points (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    chart_key  text NOT NULL,
+    kind       text NOT NULL,
+    ident      text NOT NULL DEFAULT '',
+    name       text NOT NULL,
+    x          double precision NOT NULL CHECK (x BETWEEN 0 AND 1),
+    y          double precision NOT NULL CHECK (y BETWEEN 0 AND 1),
+    freq       text NOT NULL DEFAULT '',
+    elevation  integer,
+    note       text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS airops_chart_points_idx ON airops_chart_points (chart_key)`,
+  `CREATE TABLE IF NOT EXISTS airops_plans (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    chart_key   text NOT NULL,
+    title       text NOT NULL,
+    data        jsonb NOT NULL DEFAULT '{}'::jsonb,
+    pilot_id    uuid REFERENCES airops_pilots(id) ON DELETE SET NULL,
+    author_id   uuid REFERENCES users(id) ON DELETE SET NULL,
+    author_name text NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS airops_plans_idx ON airops_plans (chart_key, updated_at DESC)`,
 ];
