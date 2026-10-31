@@ -18,12 +18,13 @@ import { inhalation, obstruction } from "./medic-protocols/voies-aeriennes";
 import { contention, detention, epcr, mort, refus, sceneCrime, transportPrecoce } from "./medic-protocols/procedures";
 import { arretPediatrique } from "./medic-protocols/pediatrie";
 import { monoxyde, overdose } from "./medic-protocols/toxico";
+import { EXTRA_DETAILS } from "./medic-details";
 import type { Protocol, Rng, Stage, Step } from "./medic-types";
 
 export type { Answers, Choice, Question, Step } from "./medic-types";
 
 /** Protocoles disponibles, dans l'ordre d'affichage. */
-export const PROTOCOLS: Protocol[] = [
+const RAW_PROTOCOLS: Protocol[] = [
   // Cardio
   arret, douleurThoracique, bradycardie, tachycardie,
   // Respiratoire
@@ -43,6 +44,14 @@ export const PROTOCOLS: Protocol[] = [
   // Procédures
   mort, refus, transportPrecoce, contention, detention, sceneCrime, epcr,
 ];
+/** Ajoute les précisions complémentaires (medic-details) à la suite de celles déjà écrites dans chaque étape. */
+export const PROTOCOLS: Protocol[] = RAW_PROTOCOLS.map((p) => ({
+  ...p,
+  build: (a, x) => p.build(a, x).map((st) => {
+    const extra = EXTRA_DETAILS[`${p.key}.${st.id}`];
+    return extra ? { ...st, detail: [...(st.detail ?? []), ...extra] } : st;
+  }),
+}));
 export const protocolOf = (key: string) => PROTOCOLS.find((p) => p.key === key) ?? PROTOCOLS[0];
 
 /** Protocoles regroupés par catégorie, dans l'ordre de première apparition. */
