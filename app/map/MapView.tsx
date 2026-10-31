@@ -60,6 +60,8 @@ type Props = {
   editing: boolean;
   /** Liens vers les rapports dans les fiches (modérateurs uniquement). */
   showReportLinks?: boolean;
+  /** true = la carte remplit la fenêtre qui la contient (Toughbook LSFD MDC) au lieu de se caler sur la hauteur de la page. */
+  fill?: boolean;
 };
 
 /** Zoom de départ au-dessus du dézoom maximum (0 = image entière visible, plus grand = plus près). */
@@ -67,7 +69,7 @@ const START_ZOOM_ABOVE_MIN = 0.5;
 
 const FILTER_STORAGE_KEY = "lsfd-map-hidden-v1";
 
-export function MapView({ initialFeatures, initialZones, editing, showReportLinks = false }: Props) {
+export function MapView({ initialFeatures, initialZones, editing, showReportLinks = false, fill = false }: Props) {
   const [features, setFeatures] = useState(initialFeatures);
   const [zones, setZones] = useState(initialZones);
   const [selected, setSelected] = useState<Selection>(null);
@@ -681,8 +683,8 @@ export function MapView({ initialFeatures, initialZones, editing, showReportLink
   const selectedZoneItem = selected?.type === "zone" ? zones.find((z) => z.id === selected.id) : undefined;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4">
-      <div className="relative flex-1 min-w-0 h-[62vh] min-h-[420px] lg:h-[calc(100vh-16rem)] lg:min-h-[520px] border border-slate-300 rounded overflow-hidden bg-slate-200">
+    <div className={fill ? "flex flex-col lg:flex-row gap-3 min-h-full lg:h-full" : "flex flex-col lg:flex-row gap-4"}>
+      <div className={`relative flex-1 min-w-0 border border-slate-300 rounded overflow-hidden bg-slate-200 ${fill ? "h-[55vh] min-h-[280px] lg:h-full lg:min-h-0" : "h-[62vh] min-h-[420px] lg:h-[calc(100vh-16rem)] lg:min-h-[520px]"}`}>
         {missingImage ? (
           <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-[13px] text-slate-600">
             <p>
@@ -714,7 +716,7 @@ export function MapView({ initialFeatures, initialZones, editing, showReportLink
         )}
       </div>
 
-      <aside className="lg:w-80 shrink-0 flex flex-col gap-4 lg:max-h-[calc(100vh-16rem)] lg:overflow-y-auto lg:pr-1">
+      <aside className={`shrink-0 flex flex-col gap-4 lg:overflow-y-auto lg:pr-1 ${fill ? "lg:w-72 lg:max-h-full" : "lg:w-80 lg:max-h-[calc(100vh-16rem)]"}`}>
         {editing && (
           <ToolsCard
             tool={tool}

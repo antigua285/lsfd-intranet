@@ -75,10 +75,16 @@
   color: #aab0b8;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
 }
-.mdc-wallpaper {
+/*
+ * Fond d'écran du bureau : dépose une image dans public/images/ sous le nom mdc-wallpaper.jpg (ou .png).
+ * Sans image, le dégradé bleu et rouge LSFD s'affiche à la place.
+ */
+.mdc-desktop {
   background:
-    radial-gradient(ellipse at 85% 10%, rgba(192, 13, 13, 0.28), transparent 55%),
-    radial-gradient(ellipse at 10% 90%, rgba(30, 90, 170, 0.35), transparent 55%),
+    url("/images/mdc-wallpaper.jpg") center / cover no-repeat,
+    url("/images/mdc-wallpaper.png") center / cover no-repeat,
+    radial-gradient(ellipse at 85% 10%, rgba(192, 13, 13, 0.32), transparent 55%),
+    radial-gradient(ellipse at 10% 90%, rgba(30, 90, 170, 0.4), transparent 55%),
     linear-gradient(160deg, #0d2644 0%, #07101d 100%);
 }
 /* Petits écrans (téléphone) : plein écran, sans coque */
