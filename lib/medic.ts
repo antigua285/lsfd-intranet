@@ -19,6 +19,11 @@ import { contention, detention, epcr, mort, refus, sceneCrime, transportPrecoce 
 import { arretPediatrique } from "./medic-protocols/pediatrie";
 import { monoxyde, overdose } from "./medic-protocols/toxico";
 import { EXTRA_DETAILS } from "./medic-details";
+import { PRACTICE_A } from "./medic-practice-a";
+import { PRACTICE_B } from "./medic-practice-b";
+import { PRACTICE_C } from "./medic-practice-c";
+
+const PRACTICE: Record<string, string[]> = { ...PRACTICE_A, ...PRACTICE_B, ...PRACTICE_C };
 import type { Protocol, Rng, Stage, Step } from "./medic-types";
 
 export type { Answers, Choice, Question, Step } from "./medic-types";
@@ -48,8 +53,9 @@ const RAW_PROTOCOLS: Protocol[] = [
 export const PROTOCOLS: Protocol[] = RAW_PROTOCOLS.map((p) => ({
   ...p,
   build: (a, x) => p.build(a, x).map((st) => {
-    const extra = EXTRA_DETAILS[`${p.key}.${st.id}`];
-    return extra ? { ...st, detail: [...(st.detail ?? []), ...extra] } : st;
+    const k = `${p.key}.${st.id}`;
+    const extra = [...(EXTRA_DETAILS[k] ?? []), ...(PRACTICE[k] ?? [])];
+    return extra.length ? { ...st, detail: [...(st.detail ?? []), ...extra] } : st;
   }),
 }));
 export const protocolOf = (key: string) => PROTOCOLS.find((p) => p.key === key) ?? PROTOCOLS[0];

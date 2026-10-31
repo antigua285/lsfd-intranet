@@ -155,7 +155,9 @@ export function Medic() {
             {step.detail && (
               <div className="mt-3 rounded bg-slate-100 border border-slate-200 p-2 text-[12.5px] text-slate-700" data-testid="medic-detail">
                 <p className="font-semibold text-slate-800 mb-0.5">Précisions d&apos;exécution</p>
-                <ul className="list-disc pl-5 space-y-0.5">{step.detail.map((d, i) => <li key={i}>{d}</li>)}</ul>
+                <div className="space-y-0.5">{step.detail.map((d, i) => d.startsWith("## ")
+                  ? <p key={i} className="mt-2 font-semibold text-slate-800 border-b border-slate-300 pb-0.5">{d.slice(3)}</p>
+                  : <p key={i} className="pl-4 -indent-3 before:content-['•_']">{d}</p>)}</div>
               </div>
             )}
             {step.choice && (
