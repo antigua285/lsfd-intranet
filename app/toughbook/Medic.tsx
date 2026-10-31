@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ARREST_STAGES, HEMO_STAGES, QUESTIONS, SITUATIONS, buildSteps, hemoStartStage, isAls, measure, onlyBls, stepLevel, stripAls, type Level, type SituationKey } from "@/lib/medic";
+import { PROTOCOLS, isAls, measure, onlyBls, protocolOf, protocolsByCategory, stepLevel, stripAls, type Level } from "@/lib/medic";
 
 type Phase = "home" | "questions" | "guide";
 
@@ -25,28 +25,29 @@ const LEVEL_UI: Record<Level, { label: string; bg: string }> = {
 /** RAPID LS County Medic : guide pas à pas, constantes typiques OOC. Aide RP, à valider par vos medics. */
 export function Medic() {
   const [phase, setPhase] = useState<Phase>("home");
-  const [sit, setSit] = useState<SituationKey>("arret");
+  const [sit, setSit] = useState<string>(PROTOCOLS[0].key);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [extra, setExtra] = useState<Record<string, string>>({});
   const [idx, setIdx] = useState(0);
   const [stage, setStage] = useState(0);
   const [blsOnly, setBlsOnly] = useState(false);
 
-  const allSteps = useMemo(() => buildSteps(sit, answers, extra), [sit, answers, extra]);
+  const proto = protocolOf(sit);
+  const allSteps = useMemo(() => proto.build(answers, extra), [proto, answers, extra]);
   const steps = useMemo(() => (blsOnly ? onlyBls(allSteps) : allSteps), [allSteps, blsOnly]);
-  const stages = sit === "arret" ? ARREST_STAGES : HEMO_STAGES;
+  const stages = proto.stages;
   const vit = useMemo(() => measure(stages[Math.min(stage, stages.length - 1)]), [stages, stage]);
-  const questions = QUESTIONS[sit];
+  const questions = proto.questions;
   const ready = questions.every((q) => answers[q.id]);
 
-  function start(s: SituationKey) {
-    setSit(s); setAnswers({}); setExtra({}); setIdx(0);
+  function start(key: string) {
+    setSit(key); setAnswers({}); setExtra({}); setIdx(0);
     setStage(0);
     setPhase("questions");
   }
   function begin() {
     setIdx(0);
-    setStage(sit === "hemorragie" ? hemoStartStage(answers) : 0);
+    setStage(proto.startStage(answers));
     setPhase("guide");
   }
   function switchToArrest(trauma: boolean) {
@@ -54,7 +55,7 @@ export function Medic() {
   }
   const step = steps[Math.min(idx, steps.length - 1)];
   const needChoice = step.choice && !extra[step.choice.key];
-  const better = sit === "arret" ? 1 : -1;
+  const better = proto.better;
   const canBetter = stage + better >= 0 && stage + better < stages.length;
   const canWorse = stage - better >= 0 && stage - better < stages.length;
 
@@ -71,14 +72,19 @@ export function Medic() {
         {header}
         <div className="flex-1 overflow-auto p-4">
           <h2 className="text-[15px] font-bold mb-3">Quelle situation ?</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {SITUATIONS.map((s) => (
-              <button key={s.key} type="button" onClick={() => start(s.key)} className="text-left rounded border-2 border-red-700 bg-red-50 hover:bg-red-100 p-4">
-                <span className="block text-[15px] font-bold text-red-800">{s.title}</span>
-                <span className="block text-[12px] text-slate-600 mt-1">{s.desc}</span>
-              </button>
-            ))}
-          </div>
+          {protocolsByCategory().map((g) => (
+            <section key={g.category} className="mb-4" aria-label={g.category}>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">{g.category}</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {g.items.map((p) => (
+                  <button key={p.key} type="button" onClick={() => start(p.key)} className="text-left rounded border-2 border-red-700 bg-red-50 hover:bg-red-100 p-3">
+                    <span className="block text-[15px] font-bold text-red-800">{p.title}</span>
+                    <span className="block text-[12px] text-slate-600 mt-1">{p.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       </div>
     );
@@ -89,7 +95,7 @@ export function Medic() {
       <div className="h-full flex flex-col bg-white text-slate-900">
         {header}
         <div className="flex-1 overflow-auto p-4">
-          <h2 className="text-[15px] font-bold mb-3">{SITUATIONS.find((s) => s.key === sit)!.title} : état du patient</h2>
+          <h2 className="text-[15px] font-bold mb-3">{proto.title} : état du patient</h2>
           <div className="space-y-4">
             {questions.map((q) => (
               <fieldset key={q.id}>
@@ -188,10 +194,10 @@ export function Medic() {
             <Row k="Respiration" v={vit.resp} />
           </dl>
           <div className="flex flex-wrap gap-2 mt-3">
-            <button type="button" disabled={!canBetter} onClick={() => { setStage((s) => s + better); }} className="px-2 py-1 rounded border border-green-700 text-green-800 bg-green-50 disabled:opacity-40">{sit === "arret" ? "Retour à la circulation" : "Amélioration"}</button>
-            <button type="button" disabled={!canWorse} onClick={() => { setStage((s) => s - better); }} className="px-2 py-1 rounded border border-red-700 text-red-800 bg-red-50 disabled:opacity-40">{sit === "arret" ? "Re-arrêt" : "Aggravation"}</button>
-            {sit === "hemorragie" && stage === HEMO_STAGES.length - 1 && (
-              <button type="button" onClick={() => switchToArrest(true)} className="px-2 py-1 rounded bg-red-700 text-white">Arrêt cardiaque traumatique</button>
+            <button type="button" disabled={!canBetter} onClick={() => { setStage((s) => s + better); }} className="px-2 py-1 rounded border border-green-700 text-green-800 bg-green-50 disabled:opacity-40">{proto.betterLabel}</button>
+            <button type="button" disabled={!canWorse} onClick={() => { setStage((s) => s - better); }} className="px-2 py-1 rounded border border-red-700 text-red-800 bg-red-50 disabled:opacity-40">{proto.worseLabel}</button>
+            {proto.arrestAt && stage === proto.arrestAt.stage && (
+              <button type="button" onClick={() => switchToArrest(proto.arrestAt!.trauma)} className="px-2 py-1 rounded bg-red-700 text-white">{proto.arrestAt.trauma ? "Arrêt cardiaque traumatique" : "Arrêt cardiaque"}</button>
             )}
           </div>
         </section>
