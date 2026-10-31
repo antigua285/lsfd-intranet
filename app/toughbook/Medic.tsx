@@ -22,29 +22,26 @@ export function Medic() {
   const [extra, setExtra] = useState<Record<string, string>>({});
   const [idx, setIdx] = useState(0);
   const [stage, setStage] = useState(0);
-  const [n, setN] = useState(0);
-  const [seed, setSeed] = useState(1);
   const [copied, setCopied] = useState(false);
 
   const steps = useMemo(() => buildSteps(sit, answers, extra), [sit, answers, extra]);
   const stages = sit === "arret" ? ARREST_STAGES : HEMO_STAGES;
-  const vit = useMemo(() => measure(stages[Math.min(stage, stages.length - 1)], seed, n), [stages, stage, seed, n]);
+  const vit = useMemo(() => measure(stages[Math.min(stage, stages.length - 1)]), [stages, stage]);
   const questions = QUESTIONS[sit];
   const ready = questions.every((q) => answers[q.id]);
 
   function start(s: SituationKey) {
-    setSit(s); setAnswers({}); setExtra({}); setIdx(0); setN(0); setCopied(false);
-    setSeed((v) => v * 31 + 7);
+    setSit(s); setAnswers({}); setExtra({}); setIdx(0); setCopied(false);
     setStage(0);
     setPhase("questions");
   }
   function begin() {
-    setIdx(0); setN(0);
+    setIdx(0);
     setStage(sit === "hemorragie" ? hemoStartStage(answers) : 0);
     setPhase("guide");
   }
   function switchToArrest(trauma: boolean) {
-    setSit("arret"); setAnswers({ cause: trauma ? "trauma" : "med", wit: "oui" }); setExtra({}); setIdx(0); setStage(0); setN((v) => v + 1); setCopied(false);
+    setSit("arret"); setAnswers({ cause: trauma ? "trauma" : "med", wit: "oui" }); setExtra({}); setIdx(0); setStage(0); setCopied(false);
   }
   const step = steps[Math.min(idx, steps.length - 1)];
   const needChoice = step.choice && !extra[step.choice.key];
@@ -146,15 +143,15 @@ export function Medic() {
         </section>
         <section className="md:w-2/5 min-h-0 overflow-auto p-3 text-[13px]" aria-label="Constantes">
           <div className="flex items-center justify-between mb-1">
-            <h3 className="font-bold text-[14px]">Constantes typiques</h3>
+            <h3 className="font-bold text-[14px]">Constantes typiques (plages)</h3>
             <span className="text-[11px] rounded bg-slate-200 px-2 py-0.5" data-testid="medic-stage">{vit.label}</span>
           </div>
           <dl>
-            <Row k="Fréquence cardiaque" v={vit.fc === "—" ? "Pouls absent" : `${vit.fc} /min`} />
-            <Row k="Tension" v={vit.ta === "Imprenable" ? vit.ta : `${vit.ta} mmHg`} warn={vit.ta !== "Imprenable" && Number(vit.ta.split("/")[0]) < 90} />
-            <Row k="SpO2" v={vit.spo2 === "Non mesurable" ? vit.spo2 : `${vit.spo2} %`} warn={vit.spo2 !== "Non mesurable" && Number(vit.spo2) < 94} />
+            <Row k="Fréquence cardiaque" v={vit.fc === "—" ? "Pouls absent (arrêt)" : `${vit.fc} /min`} />
+            <Row k="Tension" v={vit.ta === "Imprenable" ? vit.ta : `${vit.ta} mmHg`} warn={vit.ta !== "Imprenable" && vit.tasHi < 90} />
+            <Row k="SpO2" v={vit.spo2 === "Non mesurable" ? vit.spo2 : `${vit.spo2} %`} warn={vit.spo2 !== "Non mesurable" && vit.spo2Hi < 94} />
             <Row k="Fréquence respiratoire" v={`${vit.fr} /min`} />
-            {vit.etco2 && <Row k="EtCO2" v={`${vit.etco2} mmHg`} warn={Number(vit.etco2) < 10} />}
+            {vit.etco2 && <Row k="EtCO2" v={`${vit.etco2} mmHg`} warn={(vit.etco2Hi ?? 99) < 10} />}
             <Row k="Glycémie" v={`${vit.gly} g/L`} />
             <Row k="Température" v={`${vit.temp} °C`} />
             <Row k="Glasgow" v={vit.gcs} warn={Number(vit.gcs) <= 8} />
@@ -165,9 +162,8 @@ export function Medic() {
             <Row k="Respiration" v={vit.resp} />
           </dl>
           <div className="flex flex-wrap gap-2 mt-3">
-            <button type="button" onClick={() => setN((v) => v + 1)} className="px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-100">Nouvelle mesure</button>
-            <button type="button" disabled={!canBetter} onClick={() => { setStage((s) => s + better); setN((v) => v + 1); }} className="px-2 py-1 rounded border border-green-700 text-green-800 bg-green-50 disabled:opacity-40">{sit === "arret" ? "Retour à la circulation" : "Amélioration"}</button>
-            <button type="button" disabled={!canWorse} onClick={() => { setStage((s) => s - better); setN((v) => v + 1); }} className="px-2 py-1 rounded border border-red-700 text-red-800 bg-red-50 disabled:opacity-40">{sit === "arret" ? "Re-arrêt" : "Aggravation"}</button>
+            <button type="button" disabled={!canBetter} onClick={() => { setStage((s) => s + better); }} className="px-2 py-1 rounded border border-green-700 text-green-800 bg-green-50 disabled:opacity-40">{sit === "arret" ? "Retour à la circulation" : "Amélioration"}</button>
+            <button type="button" disabled={!canWorse} onClick={() => { setStage((s) => s - better); }} className="px-2 py-1 rounded border border-red-700 text-red-800 bg-red-50 disabled:opacity-40">{sit === "arret" ? "Re-arrêt" : "Aggravation"}</button>
             {sit === "hemorragie" && stage === HEMO_STAGES.length - 1 && (
               <button type="button" onClick={() => switchToArrest(true)} className="px-2 py-1 rounded bg-red-700 text-white">Arrêt cardiaque traumatique</button>
             )}

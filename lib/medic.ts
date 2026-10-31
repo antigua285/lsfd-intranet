@@ -303,7 +303,7 @@ export const HEMO_STAGES: Stage[] = [
   { label: "Compensé", fc: [98, 112], fr: [18, 22], tas: [112, 130], spo2: [95, 98], gly: [0.9, 1.2], temp: [36.2, 36.8], trc: "2 s", gcs: 15, pupilles: "Égales, réactives", peau: "Pâle, un peu moite", pouls: "Radial présent, rapide", resp: "Rapide, superficielle" },
   { label: "Choc modéré", fc: [118, 136], fr: [24, 28], tas: [85, 100], spo2: [92, 95], gly: [0.9, 1.2], temp: [35.6, 36.2], trc: "3 s", gcs: 14, pupilles: "Égales, réactives", peau: "Pâle, froide, sueurs", pouls: "Radial rapide et faible", resp: "Rapide, patient agité" },
   { label: "Choc sévère", fc: [140, 158], fr: [30, 36], tas: [60, 80], spo2: [86, 91], gly: [0.8, 1.2], temp: [35, 35.6], trc: "> 4 s", gcs: 10, pupilles: "Dilatées, réactives lentes", peau: "Grise, froide, marbrée", pouls: "Radial très filant, fémoral présent", resp: "Haletante" },
-  { label: "Pré-arrêt", fc: [38, 52], fr: [6, 9], tas: [40, 58], spo2: [70, 84], gly: [0.8, 1.2], temp: [34.5, 35.2], trc: "> 5 s", gcs: 6, pupilles: "Dilatées, peu réactives", peau: "Cireuse, glacée", pouls: "Radial absent, carotide faible", resp: "Gasps irréguliers" },
+  { label: "Pré-arrêt", fc: [40, 55], fr: [6, 10], tas: [40, 58], spo2: [70, 84], gly: [0.8, 1.2], temp: [34.5, 35.2], trc: "> 5 s", gcs: 6, pupilles: "Dilatées, peu réactives", peau: "Cireuse, glacée", pouls: "Radial à peine perceptible, carotidien présent mais filant", resp: "Gasps irréguliers" },
 ];
 
 export const ARREST_STAGES: Stage[] = [
@@ -312,33 +312,26 @@ export const ARREST_STAGES: Stage[] = [
   { label: "Stabilisé", fc: [84, 104], fr: [10, 12], tas: [100, 126], spo2: [94, 98], gly: [0.9, 1.4], temp: [35.8, 36.6], etco2: [35, 45], trc: "2 s", gcs: 7, pupilles: "Égales, réactives", peau: "Rosée, sèche", pouls: "Radial présent", resp: "Ventilé, thorax symétrique" },
 ];
 
-function mulberry(seed: number) {
-  let t = seed >>> 0;
-  return () => {
-    t += 0x6d2b79f5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
+export type Vitals = { fc: string; fr: string; ta: string; spo2: string; gly: string; temp: string; etco2: string | null; trc: string; gcs: string; pupilles: string; peau: string; pouls: string; resp: string; label: string; tasHi: number; spo2Hi: number; etco2Hi: number | null };
 
-export type Vitals = { fc: string; fr: string; ta: string; spo2: string; gly: string; temp: string; etco2: string | null; trc: string; gcs: string; pupilles: string; peau: string; pouls: string; resp: string; label: string };
-
-export function measure(stage: Stage, seed: number, n: number): Vitals {
-  const rnd = mulberry(seed * 131 + n * 7919 + 17);
-  const pick = (r: Rng, dec = 0) => { const v = r[0] + (r[1] - r[0]) * rnd(); return dec ? v.toFixed(dec).replace(".", ",") : String(Math.round(v)); };
+/** Plages typiques du stade (le patient est considéré en vie sauf en arrêt cardiaque). */
+export function measure(stage: Stage): Vitals {
   const arrest = stage.fc[1] === 0;
-  const tas = arrest ? 0 : Math.round(stage.tas[0] + (stage.tas[1] - stage.tas[0]) * rnd());
-  const tad = Math.max(20, Math.round(tas * (0.55 + rnd() * 0.1)));
+  const rg = (r: Rng, dec = 0) => {
+    const f = (v: number) => (dec ? v.toFixed(dec).replace(".", ",") : String(Math.round(v)));
+    return r[0] === r[1] ? f(r[0]) : `${f(r[0])} à ${f(r[1])}`;
+  };
+  const tad: Rng = [Math.round(stage.tas[0] * 0.58), Math.round(stage.tas[1] * 0.62)];
   return {
-    fc: arrest ? "—" : pick(stage.fc),
-    fr: arrest ? "0" : pick(stage.fr),
-    ta: arrest ? "Imprenable" : `${tas}/${tad}`,
-    spo2: arrest ? "Non mesurable" : pick(stage.spo2),
-    gly: pick(stage.gly, 2),
-    temp: pick(stage.temp, 1),
-    etco2: stage.etco2 ? pick(stage.etco2) : null,
+    fc: arrest ? "—" : rg(stage.fc),
+    fr: arrest ? "0" : rg(stage.fr),
+    ta: arrest ? "Imprenable" : `${rg(stage.tas)} / ${rg(tad)}`,
+    spo2: arrest ? "Non mesurable" : rg(stage.spo2),
+    gly: rg(stage.gly, 2),
+    temp: rg(stage.temp, 1),
+    etco2: stage.etco2 ? rg(stage.etco2) : null,
     trc: stage.trc, gcs: String(stage.gcs), pupilles: stage.pupilles, peau: stage.peau, pouls: stage.pouls, resp: stage.resp, label: stage.label,
+    tasHi: stage.tas[1], spo2Hi: stage.spo2[1], etco2Hi: stage.etco2 ? stage.etco2[1] : null,
   };
 }
 
