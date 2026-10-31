@@ -81,6 +81,8 @@ export function Medic() {
   const [stage, setStage] = useState(0);
   const [blsOnly, setBlsOnly] = useState(false);
   const [tool, setTool] = useState<ToolKey | null>(null);
+  const [seen, setSeen] = useState<ToolKey[]>([]);
+  const openTool = (k: ToolKey) => { setSeen((s) => (s.includes(k) ? s : [...s, k])); setTool(k); };
   const [tab, setTab] = useState<"steps" | "vitals">("steps");
 
   const proto = protocolOf(sit);
@@ -113,25 +115,30 @@ export function Medic() {
   const canWorse = stage - better >= 0 && stage - better < stages.length;
 
   const header = (
-    <div className="shrink-0 flex items-center gap-1.5 bg-red-700 text-white px-2 py-1 text-[13px]">
-      <strong className="tracking-wide truncate flex-1 min-w-0">RAPID LS County Medic</strong>
-      <div className="flex items-center gap-1" role="toolbar" aria-label="Outils">
-        {TOOLS.map((t) => (
-          <button key={t.key} type="button" data-testid={`tool-${t.key}`} onClick={() => setTool(t.key)} className="min-h-9 px-2.5 rounded bg-white/15 hover:bg-white/25 text-[12px] font-semibold">{t.label}</button>
-        ))}
+    <>
+      <div className="shrink-0 flex items-center gap-1.5 bg-red-700 text-white px-2 py-1 text-[13px]">
+        <strong className="tracking-wide truncate flex-1 min-w-0">RAPID LS County Medic</strong>
         {phase !== "home" && (
           <button type="button" aria-label="Nouvelle situation" onClick={() => setPhase("home")} className="min-h-9 px-2.5 rounded border border-white/50 text-[12px]">
             <span className="hidden sm:inline">Nouvelle situation</span><span className="sm:hidden">Accueil</span>
           </button>
         )}
       </div>
-    </div>
+      <div className="shrink-0 flex items-center gap-1.5 bg-slate-100 border-b border-slate-300 px-2 py-1 overflow-x-auto" role="toolbar" aria-label="Outils">
+        <span className="text-[11px] uppercase tracking-wide text-slate-500 shrink-0">Outils</span>
+        {TOOLS.map((t) => (
+          <button key={t.key} type="button" data-testid={`tool-${t.key}`} onClick={() => openTool(t.key)} className="shrink-0 min-h-9 px-3 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[12.5px] font-semibold">{t.label}</button>
+        ))}
+      </div>
+    </>
   );
   const wrap = (children: React.ReactNode) => (
     <div className="relative h-full flex flex-col bg-white text-slate-900">
       {header}
       {children}
-      {tool && <MedicToolPanel tool={tool} onClose={() => setTool(null)} />}
+      {TOOLS.filter((t) => seen.includes(t.key)).map((t) => (
+        <MedicToolPanel key={t.key} tool={t.key} visible={tool === t.key} onClose={() => setTool(null)} />
+      ))}
     </div>
   );
 
