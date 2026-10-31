@@ -7,12 +7,12 @@ export const AIROPS_LINK = "/airops";
 /* ------------------------------------------------------------------ rangs internes */
 /** Échelle interne de la section, du plus bas au plus haut. Modifiable ici sans migration (la clé est stockée). */
 export const AIR_RANKS = [
-  { key: "student", label: "Fire Pilot I", abbr: "STG", level: 1 },
-  { key: "copilot", label: "Fire Pilot II", abbr: "SIC", level: 2 },
-  { key: "pilot", label: "Fire Pilot III", abbr: "PIC", level: 3 },
-  { key: "senior", label: "Fire Pilot IV", abbr: "SPL", level: 4 },
-  { key: "instructor", label: "Fire Pilot V", abbr: "CFI", level: 5 },
-  { key: "chief", label: "Battalion Chief", abbr: "CPL", level: 6 },
+  { key: "student", label: "Fire Pilot I", abbr: "FP1", level: 1 },
+  { key: "copilot", label: "Fire Pilot II", abbr: "FP2", level: 2 },
+  { key: "pilot", label: "Fire Pilot III", abbr: "FP3", level: 3 },
+  { key: "senior", label: "Fire Pilot IV", abbr: "FP4", level: 4 },
+  { key: "instructor", label: "Fire Pilot V", abbr: "FP5", level: 5 },
+  { key: "chief", label: "Battalion Chief", abbr: "BC", level: 6 },
 ] as const;
 export type AirRankKey = (typeof AIR_RANKS)[number]["key"];
 export const airRank = (key: string) => AIR_RANKS.find((r) => r.key === key) ?? AIR_RANKS[0];
