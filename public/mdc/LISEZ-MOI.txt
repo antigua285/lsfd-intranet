@@ -1,0 +1,2 @@
+Icône : dépose ton image dans public\mdc\rapid-medic.png (PNG carré de préférence).
+Elle est recadrée automatiquement au même format que les autres icônes. Sans image, une croix rouge s'affiche.

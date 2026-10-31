@@ -6,11 +6,19 @@ import { MapView } from "../map/MapView";
 import { AVAILABLE_APPS, type MdcApp } from "@/lib/toughbook-apps";
 import { loadMdcMapAction, type MdcMapData } from "./actions";
 import { Notepad } from "./Notepad";
+import { Medic } from "./Medic";
 
 const FMT_TIME = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" });
 const FMT_DATE = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" });
 
 function AppIcon({ app, size }: { app: MdcApp; size: number }) {
+  const [broken, setBroken] = useState(false);
+  if (app.image && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={app.image} alt="" aria-hidden="true" onError={() => setBroken(true)} className="rounded-[22%] shadow-md shrink-0 object-cover bg-white" style={{ width: size, height: size }} />
+    );
+  }
   return (
     <span className="inline-flex items-center justify-center rounded-[22%] shadow-md shrink-0" style={{ width: size, height: size, background: `linear-gradient(145deg, ${app.from}, ${app.to})` }} aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="#fff" style={{ width: size * 0.6, height: size * 0.6 }}><path strokeLinecap="round" strokeLinejoin="round" d={app.glyph} /></svg>
@@ -84,6 +92,7 @@ export function Desktop() {
   const appOf = (key: string) => AVAILABLE_APPS.find((a) => a.key === key)!;
   const content = (key: string) => {
     if (key === "notepad") return <Notepad />;
+    if (key === "medic") return <Medic />;
     if (key === "map") {
       if (!map || map === "loading") return <p className="p-4 text-[13px] text-slate-600">Chargement de la carte…</p>;
       if (!map.ok) return <p role="alert" className="p-4 text-[13px] text-red-700">{map.error}</p>;
