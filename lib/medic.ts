@@ -52,27 +52,27 @@ export function buildSteps(s: SituationKey, a: Answers, extra: Answers): Step[] 
 
 /** Précisions affichées sous chaque étape : à quoi le geste doit ressembler. */
 const DETAILS: Record<string, string[]> = {
-  constat: ["Le contrôle du pouls et de la respiration se fait en même temps, pas plus de 10 secondes : on regarde le thorax pendant qu'on cherche le pouls.", "Une respiration agonique (gasps, bruyante, irrégulière) ne compte pas comme une respiration normale."],
-  x: ["Le garrot se pose sur la peau nue, à quelques centimètres au-dessus de la plaie, et se serre jusqu'à ce que le saignement s'arrête.", "Le pansement compressif se fixe en serrant, pas juste posé."],
-  rcp: ["Le masseur est à genoux à côté du thorax, les bras bien tendus, il s'enfonce avec le poids du haut du corps.", "On compte à voix haute pour garder le rythme, et le relais de masseur se fait sans pause."],
-  scope: ["Les patchs se posent sur une peau sèche, torse dénudé. Le thorax ne doit pas être gêné par les électrodes.", "Le BAVU se tient d'une main en « C » sur le masque, les trois autres doigts remontent la mâchoire."],
-  analyse: ["Pendant l'analyse, tout le monde lâche le patient et le chef de l'équipe annonce « analyse en cours ».", "La décision de choc se prend à voix haute : l'équipe doit l'entendre avant de s'écarter."],
-  choc1: ["Le défibrillateur se charge pendant que le massage continue. Le masseur arrête uniquement à l'annonce du choc."],
-  acces: ["Le garrot veineux se pose, la veine se choisit au pli du coude ou à l'avant-bras. Le brassard à tension est placé sur l'autre bras.", "Une IO se pose du côté sain, sans fracture : on tient la jambe, on repère le tibia."],
-  choc2: ["Le deuxième choc est précédé d'une analyse complète : on ne choque jamais sans avoir regardé le tracé.", "Les médicaments se préparent pendant les 2 minutes de massage, pas pendant l'analyse."],
-  choc3: ["Les patchs sont décalés d'un cran (position antéro-postérieure) pour changer l'axe du courant.", "Les doses sont répétées à voix haute et confirmées par le coéquipier avant l'injection."],
-  adr: ["La seringue d'adrénaline est étiquetée, la dose est annoncée à voix haute et confirmée par un coéquipier avant l'injection, avec un rinçage derrière.", "Le chronomètre est lancé à chaque dose pour la suivante dans 3 à 5 minutes."],
-  airway: ["Le capteur d'EtCO2 se raccorde entre le dispositif et le BAVU : une courbe doit apparaître à chaque insufflation.", "Le masseur ne s'arrête plus pour ventiler : une insufflation toutes les 6 secondes, sans synchronisation."],
-  hht: ["On énumère les causes à voix haute, une par une, en demandant au scribe de les cocher."],
-  reeval: ["La réévaluation sert à décider, pas à ralentir : on garde le rythme du massage pendant qu'on regarde l'écran."],
-  secu: ["Le feu vert du LSPD se demande à la radio : on reste hors de la ligne de tir jusqu'à la confirmation.", "En approchant, on se présente et on parle au patient, même s'il ne répond pas."],
-  dress: ["On coupe les vêtements avec des ciseaux traumatiques, du bas vers le haut, sans tirer sur les plaies.", "On passe la main sous le patient pour repérer le sang au dos, au cuir chevelu et au périnée."],
-  ab: ["Le masque haute concentration se pose avec le ballon réservoir gonflé, le débit à 15 L/min.", "On observe si les deux côtés du thorax se soulèvent de la même manière."],
-  c: ["Le garrot veineux se pose sur le bras sain, loin de la plaie.", "Les bolus se donnent en poche pressurisée, 250 mL à chaque fois, avec réévaluation du pouls radial entre deux."],
-  d: ["On pose trois questions simples : nom, lieu, heure. La lampe de poche passe sur chaque pupille."],
-  e: ["La couverture de survie enveloppe le patient sans gêner les pansements ni les garrots."],
-  antalgie: ["La dose se donne lentement, à travers la voie veineuse, en demandant au patient de noter sa douleur de 0 à 10."],
-  depart: ["Le brancardage se fait à quatre, en gardant les garrots visibles et accessibles pour la réévaluation."],
+  constat: ["Évaluer la respiration et le pouls carotidien simultanément, 10 secondes maximum.", "Des gasps (respiration agonique, bruyante, irrégulière) ne constituent pas une respiration normale."],
+  x: ["Garrot appliqué sur peau nue, quelques centimètres au-dessus de la plaie, jamais sur une articulation : serrer jusqu'à disparition du saignement.", "Pansement compressif : maintenir la compression pendant la fixation, puis contrôler l'absence de reprise du saignement."],
+  rcp: ["Patient sur plan dur, thorax dénudé. Bras tendus, épaules à l'aplomb du sternum, relâchement complet entre deux compressions.", "Compter à voix haute. La relève du masseur se fait sans interrompre le rythme."],
+  scope: ["Peau sèche, pilosité rasée si nécessaire. Les deux patchs ne doivent pas entrer en contact.", "BAVU : masque maintenu en C, mandibule soulevée par les trois autres doigts, insufflation jusqu'à l'élévation visible du thorax."],
+  analyse: ["Pause complète du massage et aucun contact avec le patient pendant l'analyse. Le chef d'équipe annonce « analyse en cours ».", "La décision de choc est annoncée à voix haute avant la charge."],
+  choc1: ["Contrôle visuel avant le choc : aucun contact avec le patient ni le brancard, source d'oxygène écartée du thorax."],
+  acces: ["Garrot veineux quelques centimètres au-dessus du pli du coude. Repérer la veine antécubitale, la tapoter pour la faire saillir.", "Désinfection par friction, laisser sécher sans retoucher la zone. Cathéter de gros calibre, biseau vers le haut, angle d'environ 20°, dans l'axe de la veine.", "Au retour veineux (flashback) : abaisser l'angle, avancer de quelques millimètres, glisser le cathéter, relâcher le garrot, retirer l'aiguille dans le collecteur.", "Rincer au NaCl 10 mL en surveillant l'infiltration, fixer au Tegaderm, inscrire calibre, site et heure.", "IO : lidocaïne 2 % 40 mg en injection lente si le patient est conscient ; le rinçage doit passer sans résistance ni gonflement."],
+  choc2: ["Préparer et étiqueter la seringue d'adrénaline pendant les compressions, non pendant l'analyse."],
+  choc3: ["Modifier la position des patchs (antéro-postérieure) pour changer l'axe du courant.", "Dose d'amiodarone annoncée à voix haute, confirmée par un second intervenant, rinçage au NaCl après injection."],
+  adr: ["Dose annoncée à voix haute, confirmée par un second intervenant, rinçage au NaCl après injection.", "Heure de chaque dose reportée sur la fiche ; la suivante est due dans 3 à 5 minutes."],
+  airway: ["Capteur d'EtCO2 placé entre le dispositif et le BAVU : une courbe doit apparaître à chaque insufflation.", "Ventilation asynchrone : le masseur ne marque plus de pause pour les insufflations."],
+  hht: ["Énoncer les causes à voix haute et les cocher au fur et à mesure sur la fiche."],
+  reeval: ["La pause du massage pour l'analyse n'excède pas 10 secondes."],
+  secu: ["Feu vert du LSPD/LSSD demandé par radio avant toute approche ; rester à couvert jusqu'à confirmation.", "Se présenter au patient dès l'abord, même en l'absence de réponse."],
+  dress: ["Découper les vêtements aux ciseaux traumatiques, du bas vers le haut, sans traction sur les plaies.", "Glisser la main sous le patient pour rechercher les saignements dorsaux ; inspecter cuir chevelu, aisselles et périnée."],
+  ab: ["Masque haute concentration : ballon réservoir gonflé avant application, débit 15 L/min.", "Comparer l'ampliation des deux hémithorax."],
+  c: ["Garrot veineux posé sur le bras opposé à la plaie principale. Voie de gros calibre, fixation au Tegaderm, calibre, site et heure inscrits.", "Bolus en poche pressurisée, pouls radial contrôlé après chaque bolus ; interrompre dès que la cible est atteinte."],
+  d: ["AVPU ou Glasgow. Pupilles examinées à la lampe : taille, symétrie, réactivité."],
+  e: ["La couverture de survie enveloppe le patient sans recouvrir ni masquer les pansements et garrots."],
+  antalgie: ["Titration lente, douleur réévaluée (0 à 10) après chaque dose."],
+  depart: ["Brancardage à quatre, garrots et pansements restant visibles pendant le transport.", "Fiche complétée : heure de pose des garrots, voies, volumes perfusés."],
 };
 
 function arretSteps(a: Answers, x: Answers): Step[] {
@@ -227,7 +227,7 @@ function hemoSteps(a: Answers): Step[] {
   steps.push({
     id: "secu", title: "Sécurité",
     lines: [
-      "Attendre le feu vert du LSPD avant d'approcher le blessé.",
+      "Attendre le feu vert du LSPD/LSSD avant d'approcher le blessé.",
       "Gants, lunettes, tenue de protection. Repérer le nombre de victimes.",
     ],
   });
@@ -254,7 +254,7 @@ function hemoSteps(a: Answers): Step[] {
       "Couper les vêtements en évitant les trous de balle.",
       "Chercher orifices d'entrée ET de sortie : dos, aisselles, périnée, cuir chevelu. Le trajet d'une balle est imprévisible.",
       "Ne pas se focaliser sur la plaie spectaculaire : chercher l'autre.",
-      "Mettre les vêtements de côté pour le LSPD (preuves).",
+      "Mettre les vêtements de côté pour le LSPD/LSSD (preuves).",
     ],
   });
   steps.push({
@@ -304,7 +304,7 @@ function hemoSteps(a: Answers): Step[] {
       "Temps total sur place inférieur à 10 minutes pour un traumatisé grave.",
       "Transport vers un centre de traumatologie, pré-alerte de l'hôpital.",
       "Transmission MIST : Mécanisme, lésions (Injuries), Signes vitaux, Traitements.",
-      "Remettre les vêtements au LSPD.",
+      "Remettre les vêtements au LSPD/LSSD.",
     ],
   });
   steps.push({
