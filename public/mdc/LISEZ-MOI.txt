@@ -1,2 +1,4 @@
-Icône : dépose ton image dans public\mdc\rapid-medic.png (PNG carré de préférence).
-Elle est recadrée automatiquement au même format que les autres icônes. Sans image, une croix rouge s'affiche.
+Icônes : dépose tes images dans public\mdc\ :
+  - rapid-medic.png  : RAPID LS County Medic (sans image : croix rouge)
+  - lsc-drugs.png    : LSC EMS Drug Doses (sans image : flacon sur fond turquoise)
+PNG carré de préférence. Elles sont recadrées automatiquement au même format que les autres icônes.

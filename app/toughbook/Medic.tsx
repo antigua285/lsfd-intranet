@@ -72,7 +72,7 @@ function Detail({ stepId, detail }: { stepId: string; detail: string[] }) {
 }
 
 /** RAPID LS County Medic : guide pas à pas, constantes typiques OOC. Aide RP, à valider par vos medics. */
-export function Medic() {
+export function Medic({ onOpenApp }: { onOpenApp?: (key: string, preset?: { zone?: string }) => void } = {}) {
   const [phase, setPhase] = useState<Phase>("home");
   const [sit, setSit] = useState<string>(PROTOCOLS[0].key);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -129,6 +129,9 @@ export function Medic() {
         {TOOLS.map((t) => (
           <button key={t.key} type="button" data-testid={`tool-${t.key}`} onClick={() => openTool(t.key)} className="shrink-0 min-h-9 px-3 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-[12.5px] font-semibold">{t.label}</button>
         ))}
+        {onOpenApp && (
+          <button type="button" data-testid="open-drugs" onClick={() => onOpenApp("drugs", sit === "arret-pediatrique" && answers.poids ? { zone: answers.poids } : undefined)} className="shrink-0 min-h-9 px-3 rounded-md border border-[#0f5b63] bg-[#0f5b63] text-white text-[12.5px] font-semibold">Doses ↗</button>
+        )}
       </div>
     </>
   );

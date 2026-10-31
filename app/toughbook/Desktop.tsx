@@ -7,6 +7,7 @@ import { AVAILABLE_APPS, type MdcApp } from "@/lib/toughbook-apps";
 import { loadMdcMapAction, type MdcMapData } from "./actions";
 import { Notepad } from "./Notepad";
 import { Medic } from "./Medic";
+import { DrugDoses, type DrugPreset } from "./DrugDoses";
 
 const FMT_TIME = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" });
 const FMT_DATE = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -39,6 +40,7 @@ export function Desktop() {
   const [startOpen, setStartOpen] = useState(false);
   const [now, setNow] = useState<Date | null>(null);
   const [full, setFull] = useState(false);
+  const [drugPreset, setDrugPreset] = useState<DrugPreset>({ nonce: 0 });
   const [map, setMap] = useState<MdcMapData | "loading" | null>(null);
   const [, startTransition] = useTransition();
   const pointer = useRef<string>("mouse");
@@ -64,6 +66,11 @@ export function Desktop() {
     setMinimized((m) => { const n = new Set(m); n.delete(key); return n; });
     setActive(key);
     if (key === "map") loadMap();
+  };
+  /** Ouverture depuis une autre application (ex. RAPID → doses), avec un éventuel préréglage. */
+  const openFromApp = (key: string, preset?: { zone?: string }) => {
+    if (key === "drugs" && preset?.zone) setDrugPreset((p) => ({ zone: preset.zone, nonce: p.nonce + 1 }));
+    openApp(key);
   };
   const closeApp = (key: string) => {
     setOpen((o) => o.filter((k) => k !== key));
@@ -92,7 +99,8 @@ export function Desktop() {
   const appOf = (key: string) => AVAILABLE_APPS.find((a) => a.key === key)!;
   const content = (key: string) => {
     if (key === "notepad") return <Notepad />;
-    if (key === "medic") return <Medic />;
+    if (key === "medic") return <Medic onOpenApp={openFromApp} />;
+    if (key === "drugs") return <DrugDoses preset={drugPreset} onOpenApp={openFromApp} />;
     if (key === "map") {
       if (!map || map === "loading") return <p className="p-4 text-[13px] text-slate-600">Chargement de la carte…</p>;
       if (!map.ok) return <p role="alert" className="p-4 text-[13px] text-red-700">{map.error}</p>;
