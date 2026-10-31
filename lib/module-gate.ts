@@ -24,7 +24,7 @@ export function modulesForPath(pathname: string) {
  * Tant que les tables de flags n'existent pas (db:setup pas encore lancé), tout reste ouvert.
  */
 /** Adresses des espaces du site qu'une recrue en académie ne doit pas ouvrir, même si aucune catégorie ne les couvre. */
-const RECRUIT_BLOCKED = ["/training", "/forms", "/reports", "/map", "/organization", "/documents", "/calendar", "/admin"];
+const RECRUIT_BLOCKED = ["/training", "/forms", "/reports", "/map", "/organization", "/documents", "/calendar", "/toughbook", "/admin"];
 
 export async function isPathAllowed(userId: string, pathname: string): Promise<boolean> {
   const mods = modulesForPath(pathname);

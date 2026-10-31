@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import { OfficialBanner } from "@/components/OfficialBanner";
+import { ChromeGate } from "@/components/ChromeGate";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { HeaderUser, HeaderUserSkeleton } from "@/components/HeaderUser";
 import { SidebarLinks, SidebarLinksSkeleton } from "@/components/SidebarLinks";
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} flex flex-col h-screen overflow-hidden bg-slate-100`}>
-        <OfficialBanner />
+        <Suspense fallback={null}>
+          <ChromeGate><OfficialBanner /></ChromeGate>
+        </Suspense>
         {/* Sur les pages à adresse dynamique (/reports/[id]…) l'URL n'est connue qu'à la requête : le menu est diffusé après coup. */}
         <Suspense fallback={null}>
         <DashboardLayout

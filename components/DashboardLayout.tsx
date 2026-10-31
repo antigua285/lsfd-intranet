@@ -27,6 +27,11 @@ export function DashboardLayout({ children, userSlot, navSlot }: DashboardLayout
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // Le Toughbook LSFD MDC s'affiche en plein écran, sans header ni menu du site
+  if (pathname === "/toughbook" || pathname.startsWith("/toughbook/")) {
+    return <main className="flex-1 overflow-hidden">{children}</main>;
+  }
+
   if (isLoginPage) {
     return <main className="flex-1 overflow-y-auto bg-slate-100">{children}</main>;
   }
