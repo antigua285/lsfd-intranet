@@ -8,18 +8,50 @@ import { arret } from "./medic-protocols/arret";
 import { detresseRespiratoire } from "./medic-protocols/detresse-respiratoire";
 import { douleurThoracique } from "./medic-protocols/douleur-thoracique";
 import { hemorragie } from "./medic-protocols/hemorragie";
+import { accouchement } from "./medic-protocols/obstetrique";
+import { avc, convulsions, hypoglycemie, syncope } from "./medic-protocols/neuro";
+import { brulure, ecrasement, thorax, traumaCranien } from "./medic-protocols/trauma";
+import { bavu, casque, glycemie, smr, tensionPalpatoire } from "./medic-protocols/manoeuvres";
+import { bradycardie, tachycardie } from "./medic-protocols/rythme";
+import { electrisation, hyperthermie, hypothermie, morsure } from "./medic-protocols/environnement";
+import { inhalation, obstruction } from "./medic-protocols/voies-aeriennes";
+import { contention, detention, epcr, mort, refus, sceneCrime, transportPrecoce } from "./medic-protocols/procedures";
+import { arretPediatrique } from "./medic-protocols/pediatrie";
+import { monoxyde, overdose } from "./medic-protocols/toxico";
 import type { Protocol, Rng, Stage, Step } from "./medic-types";
 
 export type { Answers, Choice, Question, Step } from "./medic-types";
 
 /** Protocoles disponibles, dans l'ordre d'affichage. */
-export const PROTOCOLS: Protocol[] = [arret, douleurThoracique, detresseRespiratoire, anaphylaxie, hemorragie];
+export const PROTOCOLS: Protocol[] = [
+  // Cardio
+  arret, douleurThoracique, bradycardie, tachycardie,
+  // Respiratoire
+  detresseRespiratoire, anaphylaxie, obstruction, inhalation,
+  // Trauma
+  hemorragie, thorax, traumaCranien, ecrasement, brulure,
+  // Neurologie
+  avc, convulsions, hypoglycemie, syncope,
+  // Toxicologie
+  overdose, monoxyde,
+  // Environnement
+  hyperthermie, hypothermie, morsure, electrisation,
+  // Obstétrique et pédiatrie
+  accouchement, arretPediatrique,
+  // Manœuvres
+  smr, casque, tensionPalpatoire, glycemie, bavu,
+  // Procédures
+  mort, refus, transportPrecoce, contention, detention, sceneCrime, epcr,
+];
 export const protocolOf = (key: string) => PROTOCOLS.find((p) => p.key === key) ?? PROTOCOLS[0];
 
 /** Protocoles regroupés par catégorie, dans l'ordre de première apparition. */
-export function protocolsByCategory(): { category: string; items: Protocol[] }[] {
+export function protocolsByCategory(query = ""): { category: string; items: Protocol[] }[] {
   const out: { category: string; items: Protocol[] }[] = [];
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const needle = norm(query.trim());
   for (const p of PROTOCOLS) {
+    if (needle && !norm(`${p.title} ${p.desc} ${p.category}`).includes(needle)) continue;
     const g = out.find((o) => o.category === p.category);
     if (g) g.items.push(p); else out.push({ category: p.category, items: [p] });
   }

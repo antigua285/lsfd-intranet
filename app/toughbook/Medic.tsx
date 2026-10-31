@@ -35,15 +35,16 @@ export function Medic() {
   const proto = protocolOf(sit);
   const allSteps = useMemo(() => proto.build(answers, extra), [proto, answers, extra]);
   const steps = useMemo(() => (blsOnly ? onlyBls(allSteps) : allSteps), [allSteps, blsOnly]);
-  const stages = proto.stages;
-  const vit = useMemo(() => measure(stages[Math.min(stage, stages.length - 1)]), [stages, stage]);
+  const stages = useMemo(() => (typeof proto.stages === "function" ? proto.stages(answers) : proto.stages), [proto, answers]);
+  const vit = useMemo(() => (stages.length ? measure(stages[Math.min(stage, stages.length - 1)]) : null), [stages, stage]);
+  const [q, setQ] = useState("");
   const questions = proto.questions;
   const ready = questions.every((q) => answers[q.id]);
 
   function start(key: string) {
     setSit(key); setAnswers({}); setExtra({}); setIdx(0);
     setStage(0);
-    setPhase("questions");
+    setPhase(protocolOf(key).questions.length === 0 ? "guide" : "questions");
   }
   function begin() {
     setIdx(0);
@@ -72,7 +73,8 @@ export function Medic() {
         {header}
         <div className="flex-1 overflow-auto p-4">
           <h2 className="text-[15px] font-bold mb-3">Quelle situation ?</h2>
-          {protocolsByCategory().map((g) => (
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un protocole…" aria-label="Rechercher un protocole" data-testid="medic-search" className="w-full mb-3 rounded border border-slate-300 px-3 py-1.5 text-[14px]" />
+          {protocolsByCategory(q).map((g) => (
             <section key={g.category} className="mb-4" aria-label={g.category}>
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">{g.category}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -118,7 +120,7 @@ export function Medic() {
     <div className="h-full flex flex-col bg-white text-slate-900">
       {header}
       <div className="flex-1 min-h-0 flex flex-col md:flex-row">
-        <section className="md:w-3/5 min-h-0 flex flex-col border-b md:border-b-0 md:border-r border-slate-300" aria-label="Étapes">
+        <section className={`${vit ? "md:w-3/5 border-b md:border-b-0 md:border-r" : "flex-1"} min-h-0 flex flex-col border-slate-300`} aria-label="Étapes">
           <div className="flex-1 overflow-auto p-3">
             <div className="flex items-center gap-0.5 mb-2" aria-label="Progression" data-testid="medic-progress">
               {steps.map((st, i) => (
@@ -173,6 +175,7 @@ export function Medic() {
             {needChoice && <span className="self-center text-[12px] text-slate-500">Choisir le rythme pour continuer</span>}
           </div>
         </section>
+        {vit && (
         <section className="md:w-2/5 min-h-0 overflow-auto p-3 text-[13px]" aria-label="Constantes">
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-bold text-[14px]">Constantes typiques (plages)</h3>
@@ -201,6 +204,7 @@ export function Medic() {
             )}
           </div>
         </section>
+        )}
       </div>
     </div>
   );

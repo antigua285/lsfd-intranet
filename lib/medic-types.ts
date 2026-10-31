@@ -31,12 +31,15 @@ export type Protocol = {
   category: string;
   questions: Question[];
   build: (a: Answers, x: Answers) => Step[];
-  stages: Stage[];
+  /** Stades de gravité (constantes typiques). Peut dépendre des réponses. Vide ou absent pour une fiche sans constantes. */
+  stages: Stage[] | ((a: Answers) => Stage[]);
   startStage: (a: Answers) => number;
   /** +1 si l'amélioration fait avancer dans la liste des stades (ex. arrêt → reprise), -1 sinon. */
   better: 1 | -1;
   betterLabel: string;
   worseLabel: string;
+  /** Fiche de consultation sans constantes (procédures, manœuvres). */
+  noVitals?: boolean;
   /** Stade à partir duquel on propose de basculer en arrêt cardiaque. */
   arrestAt?: { stage: number; trauma: boolean };
 };
