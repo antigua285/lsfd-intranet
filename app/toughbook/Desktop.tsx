@@ -115,7 +115,7 @@ export function Desktop() {
                 onClick={(e) => { e.stopPropagation(); setStartOpen(false); if (pointer.current === "touch" || pointer.current === "pen") openApp(app.key); else setSelected(app.key); }}
                 onDoubleClick={(e) => { e.stopPropagation(); openApp(app.key); }}
                 onKeyDown={(e) => { if (e.key === "Enter") openApp(app.key); }}
-                className={`w-24 p-2 rounded flex flex-col items-center gap-1.5 border ${selected === app.key ? "bg-white/25 border-white/50" : "border-transparent hover:bg-white/10"}`}
+                className={`w-20 sm:w-24 p-1.5 sm:p-2 rounded flex flex-col items-center gap-1 sm:gap-1.5 border ${selected === app.key ? "bg-white/25 border-white/50" : "border-transparent hover:bg-white/10"}`}
               >
                 <AppIcon app={app} size={52} />
                 <span className="text-[12px] leading-tight text-white text-center" style={{ textShadow: "0 1px 3px rgba(0,0,0,.9)" }}>{app.title}</span>
@@ -131,7 +131,7 @@ export function Desktop() {
           return (
             <section key={key} aria-label={app.title} aria-hidden={!visible} data-testid={`window-${key}`} data-visible={visible} onClick={(e) => e.stopPropagation()}
               className={`absolute inset-0 flex flex-col bg-white text-slate-900 ${visible ? "z-20" : "z-0 invisible pointer-events-none"}`}>
-              <div className="h-9 shrink-0 flex items-center bg-[#f3f3f3] border-b border-slate-300 text-[13px]">
+              <div className="h-10 sm:h-9 shrink-0 flex items-center bg-[#f3f3f3] border-b border-slate-300 text-[13px]">
                 <span className="pl-2"><AppIcon app={app} size={20} /></span>
                 <span className="px-2 flex-1 truncate">{key === "notepad" ? "Sans titre - Bloc-notes" : app.title}</span>
                 <button type="button" aria-label={`Réduire ${app.title}`} data-testid={`min-${key}`} onClick={() => minimize(key)} className="w-12 h-full hover:bg-slate-200 text-[16px]">—</button>
@@ -143,7 +143,7 @@ export function Desktop() {
         })}
 
         {startOpen && (
-          <div role="menu" aria-label="Démarrer" data-testid="start-menu" onClick={(e) => e.stopPropagation()} className="absolute left-0 bottom-0 z-40 w-72 bg-[#1f1f1f]/97 text-white border border-white/10 shadow-2xl">
+          <div role="menu" aria-label="Démarrer" data-testid="start-menu" onClick={(e) => e.stopPropagation()} className="absolute left-0 bottom-0 z-40 w-72 max-w-full max-h-full overflow-auto bg-[#1f1f1f]/97 text-white border border-white/10 shadow-2xl">
             <p className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-widest text-white/50">LSFD MDC</p>
             <ul className="py-1">
               {AVAILABLE_APPS.map((app) => (
@@ -170,17 +170,17 @@ export function Desktop() {
             const app = appOf(key);
             const isActive = active === key && !minimized.has(key);
             return (
-              <button key={key} type="button" data-testid={`tab-${key}`} aria-pressed={isActive} onClick={() => onTab(key)} className={`relative min-w-36 max-w-52 px-3 flex items-center gap-2 text-[13px] ${isActive ? "bg-white/15" : "bg-white/5 hover:bg-white/10"}`}>
+              <button key={key} type="button" data-testid={`tab-${key}`} aria-label={app.title} aria-pressed={isActive} onClick={() => onTab(key)} className={`relative min-w-12 sm:min-w-36 max-w-52 px-3 flex items-center justify-center sm:justify-start gap-2 text-[13px] ${isActive ? "bg-white/15" : "bg-white/5 hover:bg-white/10"}`}>
                 <AppIcon app={app} size={22} />
-                <span className="truncate">{app.title}</span>
+                <span className="truncate hidden sm:inline">{app.title}</span>
                 <span className={`absolute left-0 right-0 bottom-0 h-[3px] ${isActive ? "bg-[#76b9ed]" : "bg-white/30"}`} />
               </button>
             );
           })}
         </div>
-        <div className="px-3 flex flex-col justify-center items-end leading-tight text-[12px] min-w-24" data-testid="mdc-clock" suppressHydrationWarning>
+        <div className="px-2 sm:px-3 flex flex-col justify-center items-end leading-tight text-[11px] sm:text-[12px] min-w-14 sm:min-w-24" data-testid="mdc-clock" suppressHydrationWarning>
           <span className="tabular-nums">{now ? FMT_TIME.format(now) : "--:--"}</span>
-          <span className="tabular-nums text-white/70">{now ? FMT_DATE.format(now) : ""}</span>
+          <span className="tabular-nums text-white/70 hidden sm:inline">{now ? FMT_DATE.format(now) : ""}</span>
         </div>
         <button type="button" aria-label="Afficher le bureau" data-testid="show-desktop" onClick={showDesktop} className="w-2.5 border-l border-white/30 hover:bg-white/20" />
       </nav>

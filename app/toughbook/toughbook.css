@@ -89,7 +89,7 @@
 }
 /* Petits écrans (téléphone) : plein écran, sans coque */
 @media (max-width: 767px) {
-  .mdc-stage { padding: 0; background: #0b1626; align-items: stretch; }
+  .mdc-stage { padding: 0; background: #0b1626; align-items: stretch; height: 100dvh; }
   .mdc-shell { aspect-ratio: auto; width: 100%; padding: 0; background: none; border-radius: 0; box-shadow: none; }
   .mdc-shell::before, .mdc-shell::after, .mdc-camera, .mdc-brand { display: none; }
   .mdc-bezel { padding: 0; border-radius: 0; box-shadow: none; background: none; }
