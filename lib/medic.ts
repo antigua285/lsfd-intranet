@@ -31,8 +31,10 @@ export type Step = {
   title: string;
   /** Manœuvres lues telles quelles par le paramedic. */
   lines: string[];
-  /** Posologies / matériel à retenir. */
+  /** Posologies / matériel à retenir. Préfixe « ALS: » = geste ou produit avancé. */
   doses?: string[];
+  /** Précisions sur ce à quoi le geste doit ressembler (sans texte RP prérédigé). */
+  detail?: string[];
   /** Si présent : choix obligatoire pour continuer (ex. rythme du scope). */
   choice?: { key: string; options: Choice[] };
   /** Temps de répétition ou de réévaluation. */
@@ -44,8 +46,34 @@ type Answers = Record<string, string>;
 /* ───────────────────────── Étapes ───────────────────────── */
 
 export function buildSteps(s: SituationKey, a: Answers, extra: Answers): Step[] {
-  return s === "arret" ? arretSteps(a, extra) : hemoSteps(a);
+  const list = s === "arret" ? arretSteps(a, extra) : hemoSteps(a);
+  return list.map((st) => ({ ...st, detail: DETAILS[st.id] }));
 }
+
+/** Précisions affichées sous chaque étape : à quoi le geste doit ressembler. */
+const DETAILS: Record<string, string[]> = {
+  constat: ["Le contrôle du pouls et de la respiration se fait en même temps, pas plus de 10 secondes : on regarde le thorax pendant qu'on cherche le pouls.", "Une respiration agonique (gasps, bruyante, irrégulière) ne compte pas comme une respiration normale."],
+  x: ["Le garrot se pose sur la peau nue, à quelques centimètres au-dessus de la plaie, et se serre jusqu'à ce que le saignement s'arrête.", "Le pansement compressif se fixe en serrant, pas juste posé."],
+  rcp: ["Le masseur est à genoux à côté du thorax, les bras bien tendus, il s'enfonce avec le poids du haut du corps.", "On compte à voix haute pour garder le rythme, et le relais de masseur se fait sans pause."],
+  scope: ["Les patchs se posent sur une peau sèche, torse dénudé. Le thorax ne doit pas être gêné par les électrodes.", "Le BAVU se tient d'une main en « C » sur le masque, les trois autres doigts remontent la mâchoire."],
+  analyse: ["Pendant l'analyse, tout le monde lâche le patient et le chef de l'équipe annonce « analyse en cours ».", "La décision de choc se prend à voix haute : l'équipe doit l'entendre avant de s'écarter."],
+  choc1: ["Le défibrillateur se charge pendant que le massage continue. Le masseur arrête uniquement à l'annonce du choc."],
+  acces: ["Le garrot veineux se pose, la veine se choisit au pli du coude ou à l'avant-bras. Le brassard à tension est placé sur l'autre bras.", "Une IO se pose du côté sain, sans fracture : on tient la jambe, on repère le tibia."],
+  choc2: ["Le deuxième choc est précédé d'une analyse complète : on ne choque jamais sans avoir regardé le tracé.", "Les médicaments se préparent pendant les 2 minutes de massage, pas pendant l'analyse."],
+  choc3: ["Les patchs sont décalés d'un cran (position antéro-postérieure) pour changer l'axe du courant.", "Les doses sont répétées à voix haute et confirmées par le coéquipier avant l'injection."],
+  adr: ["La seringue d'adrénaline est étiquetée, la dose est annoncée à voix haute et confirmée par un coéquipier avant l'injection, avec un rinçage derrière.", "Le chronomètre est lancé à chaque dose pour la suivante dans 3 à 5 minutes."],
+  airway: ["Le capteur d'EtCO2 se raccorde entre le dispositif et le BAVU : une courbe doit apparaître à chaque insufflation.", "Le masseur ne s'arrête plus pour ventiler : une insufflation toutes les 6 secondes, sans synchronisation."],
+  hht: ["On énumère les causes à voix haute, une par une, en demandant au scribe de les cocher."],
+  reeval: ["La réévaluation sert à décider, pas à ralentir : on garde le rythme du massage pendant qu'on regarde l'écran."],
+  secu: ["Le feu vert du LSPD se demande à la radio : on reste hors de la ligne de tir jusqu'à la confirmation.", "En approchant, on se présente et on parle au patient, même s'il ne répond pas."],
+  dress: ["On coupe les vêtements avec des ciseaux traumatiques, du bas vers le haut, sans tirer sur les plaies.", "On passe la main sous le patient pour repérer le sang au dos, au cuir chevelu et au périnée."],
+  ab: ["Le masque haute concentration se pose avec le ballon réservoir gonflé, le débit à 15 L/min.", "On observe si les deux côtés du thorax se soulèvent de la même manière."],
+  c: ["Le garrot veineux se pose sur le bras sain, loin de la plaie.", "Les bolus se donnent en poche pressurisée, 250 mL à chaque fois, avec réévaluation du pouls radial entre deux."],
+  d: ["On pose trois questions simples : nom, lieu, heure. La lampe de poche passe sur chaque pupille."],
+  e: ["La couverture de survie enveloppe le patient sans gêner les pansements ni les garrots."],
+  antalgie: ["La dose se donne lentement, à travers la voie veineuse, en demandant au patient de noter sa douleur de 0 à 10."],
+  depart: ["Le brancardage se fait à quatre, en gardant les garrots visibles et accessibles pour la réévaluation."],
+};
 
 function arretSteps(a: Answers, x: Answers): Step[] {
   const trauma = a.cause === "trauma";
@@ -121,9 +149,9 @@ function arretSteps(a: Answers, x: Answers): Step[] {
     steps.push({
       id: "acces", title: "Accès vasculaire",
       lines: [
-        "Voie veineuse périphérique, bras en priorité.",
-        "Deux essais ou 90 secondes sans succès : intra-osseuse. Tibia proximal (deux doigts sous la tubérosité, face interne), à défaut humérus proximal.",
-        "Aiguille à 90°, percer jusqu'à la perte de résistance, retirer le mandrin, rincer 10 mL de NaCl, fixer.",
+        "ALS: Voie veineuse périphérique, bras en priorité.",
+        "ALS: Deux essais ou 90 secondes sans succès : intra-osseuse. Tibia proximal (deux doigts sous la tubérosité, face interne), à défaut humérus proximal.",
+        "ALS: Aiguille à 90°, percer jusqu'à la perte de résistance, retirer le mandrin, rincer 10 mL de NaCl, fixer.",
       ],
     });
     steps.push({
@@ -131,9 +159,9 @@ function arretSteps(a: Answers, x: Answers): Step[] {
       lines: [
         "Analyser le rythme. Toujours chocable : 300 J.",
         "Choc, puis reprise immédiate du massage.",
-        "Injecter l'adrénaline en IV/IO direct, puis rincer au NaCl.",
+        "ALS: Injecter l'adrénaline en IV/IO direct, puis rincer au NaCl.",
       ],
-      doses: ["Choc 300 J", "Adrénaline 1 mg (0,1 mg/mL) IV/IO, puis toutes les 3–5 min, 3 mg maximum"],
+      doses: ["Choc 300 J", "ALS: Adrénaline 1 mg (0,1 mg/mL) IV/IO, puis toutes les 3–5 min, 3 mg maximum"],
       tag: "Adrénaline puis /3–5 min",
     });
     steps.push({
@@ -141,45 +169,45 @@ function arretSteps(a: Answers, x: Answers): Step[] {
       lines: [
         "Analyser le rythme. Toujours chocable : 360 J, changer la position des patchs.",
         "Choc, reprise du massage.",
-        "Injecter l'amiodarone en IV/IO.",
+        "ALS: Injecter l'amiodarone en IV/IO.",
       ],
-      doses: ["Choc 360 J", "Amiodarone 300 mg IV/IO, puis 150 mg (450 mg maximum)"],
+      doses: ["Choc 360 J", "ALS: Amiodarone 300 mg IV/IO, puis 150 mg (450 mg maximum)"],
     });
   } else {
     steps.push({
       id: "adr", title: r === "asy" ? "Asystolie : adrénaline sans attendre" : "AESP : adrénaline sans attendre",
       lines: [
         "Reprise immédiate du massage, on ne choque pas.",
-        "Poser la voie veineuse (ou intra-osseuse après deux essais / 90 secondes).",
-        "Injecter l'adrénaline dès que possible, puis rincer.",
-        "NaCl 0,9 % 1 L en perfusion rapide, à répéter une fois si besoin.",
+        "ALS: Poser la voie veineuse (ou intra-osseuse après deux essais / 90 secondes).",
+        "ALS: Injecter l'adrénaline dès que possible, puis rincer.",
+        "ALS: NaCl 0,9 % 1 L en perfusion rapide, à répéter une fois si besoin.",
       ],
-      doses: ["Adrénaline 1 mg (0,1 mg/mL) IV/IO, puis toutes les 3–5 min, 3 mg maximum", "NaCl 0,9 % 1 L rapide (2 L en tout si hémorragie)"],
+      doses: ["ALS: Adrénaline 1 mg (0,1 mg/mL) IV/IO, puis toutes les 3–5 min, 3 mg maximum", "ALS: NaCl 0,9 % 1 L rapide (2 L en tout si hémorragie)"],
       tag: "Adrénaline /3–5 min",
     });
   }
   steps.push({
     id: "airway", title: "Voies aériennes avancées",
     lines: [
-      "Dispositif supraglottique i-gel, premier choix en arrêt cardiaque : adulte moyen (50–90 kg) taille 4, grand adulte taille 5, petit adulte taille 3.",
-      "Lubrifier la face arrière, glisser le long du palais jusqu'à la résistance, raccorder le BAVU.",
-      "Brancher le capteur d'EtCO2, confirmer la ventilation.",
-      "Passer à 1 insufflation toutes les 6 secondes, massage continu.",
+      "ALS: Dispositif supraglottique i-gel, premier choix en arrêt cardiaque : adulte moyen (50–90 kg) taille 4, grand adulte taille 5, petit adulte taille 3.",
+      "ALS: Lubrifier la face arrière, glisser le long du palais jusqu'à la résistance, raccorder le BAVU.",
+      "ALS: Brancher le capteur d'EtCO2, confirmer la ventilation.",
+      "ALS: Passer à 1 insufflation toutes les 6 secondes, massage continu.",
     ],
-    doses: ["EtCO2 > 10 mmHg : massage efficace ; < 10 : améliorer le massage"],
+    doses: ["ALS: EtCO2 > 10 mmHg : massage efficace ; < 10 : améliorer le massage"],
   });
   steps.push({
     id: "hht", title: "Causes réversibles (4H / 4T)",
     lines: trauma
       ? [
-          "Décompression à l'aiguille des deux côtés en cas de traumatisme thoracique.",
-          "En route : deux voies veineuses de gros calibre ou IO, NaCl 2 L en perfusion rapide.",
+          "ALS: Décompression à l'aiguille des deux côtés en cas de traumatisme thoracique.",
+          "ALS: En route : deux voies veineuses de gros calibre ou IO, NaCl 2 L en perfusion rapide.",
           "Rythme chocable en trauma pénétrant : défibriller mais partir immédiatement.",
         ]
       : [
-          "Hypoxie, hypovolémie, hypo/hyperkaliémie, hypothermie.",
-          "Pneumothorax suffocant, tamponnade, thrombose (cœur, poumon), toxiques.",
-          "Glycémie capillaire, traiter la cause trouvée.",
+          "ALS: Hypoxie, hypovolémie, hypo/hyperkaliémie, hypothermie.",
+          "ALS: Pneumothorax suffocant, tamponnade, thrombose (cœur, poumon), toxiques.",
+          "ALS: Glycémie capillaire, traiter la cause trouvée.",
         ],
   });
   steps.push({
@@ -242,15 +270,15 @@ function hemoSteps(a: Answers): Step[] {
   steps.push({
     id: "c", title: "C : accès vasculaire et remplissage prudent",
     lines: [
-      "Poser deux voies veineuses de gros calibre (16G ou 18G).",
-      "Deux essais ou 90 secondes sans succès : intra-osseuse au tibia proximal.",
+      "ALS: Poser deux voies veineuses de gros calibre (16G ou 18G).",
+      "ALS: Deux essais ou 90 secondes sans succès : intra-osseuse au tibia proximal.",
       a.meca === "autre"
-        ? "Objectif : pouls radial présent et patient conscient. Traumatisme fermé : TA systolique ≥ 90 mmHg, NaCl 250 mL rapide puis contact OLMC."
-        : "Trauma pénétrant, patient conscient : hypotension permissive. Objectif pouls radial présent, TA systolique ≥ 70 mmHg.",
-      a.meca === "autre" ? "Réévaluer après le bolus." : "Bolus de NaCl 250 mL seulement si la cible n'est pas atteinte, réévaluer après chaque bolus.",
-      "Ne pas chercher une tension normale : trop de liquide dilue la coagulation et fait resaigner.",
+        ? "ALS: Objectif : pouls radial présent et patient conscient. Traumatisme fermé : TA systolique ≥ 90 mmHg, NaCl 250 mL rapide puis contact OLMC."
+        : "ALS: Trauma pénétrant, patient conscient : hypotension permissive. Objectif pouls radial présent, TA systolique ≥ 70 mmHg.",
+      a.meca === "autre" ? "ALS: Réévaluer après le bolus." : "ALS: Bolus de NaCl 250 mL seulement si la cible n'est pas atteinte, réévaluer après chaque bolus.",
+      "ALS: Ne pas chercher une tension normale : trop de liquide dilue la coagulation et fait resaigner.",
     ],
-    doses: ["NaCl 0,9 % bolus 250 mL", "Acide tranexamique 1 g dans 50–100 mL de NaCl en 10 min (blessure < 3 h et TAS < 90, ou FC > TAS, ou hémorragie non contrôlée)"],
+    doses: ["ALS: NaCl 0,9 % bolus 250 mL", "ALS: Acide tranexamique 1 g dans 50–100 mL de NaCl en 10 min (blessure < 3 h et TAS < 90, ou FC > TAS, ou hémorragie non contrôlée)"],
     tag: "Réévaluer à chaque bolus",
   });
   steps.push({
@@ -258,16 +286,17 @@ function hemoSteps(a: Answers): Step[] {
     lines: [
       "Score AVPU / Glasgow, pupilles.",
       "Glycémie capillaire.",
-      "Glasgow ≤ 8 : contrôle avancé des voies aériennes (i-gel).",
+      "ALS: Glasgow ≤ 8 : contrôle avancé des voies aériennes (i-gel).",
     ],
   });
   steps.push({
-    id: "e", title: "E : protéger du froid, antalgie",
-    lines: [
-      "Couvrir avec une couverture de survie, limiter le temps de déshabillage, ambulance chauffée.",
-      "Patient conscient et TA suffisante : antalgie par titration.",
-    ],
-    doses: ["Fentanyl 50 µg IV toutes les 5 min (150 µg max)", "Morphine 4 mg IV toutes les 5 min (12 mg max)"],
+    id: "e", title: "E : protéger du froid",
+    lines: ["Couvrir avec une couverture de survie, limiter le temps de déshabillage, ambulance chauffée."],
+  });
+  steps.push({
+    id: "antalgie", title: "Antalgie",
+    lines: ["ALS: Patient conscient et TA suffisante : antalgie par titration, réévaluer la douleur après chaque dose."],
+    doses: ["ALS: Fentanyl 50 µg IV toutes les 5 min (150 µg max)", "ALS: Morphine 4 mg IV toutes les 5 min (12 mg max)"],
   });
   steps.push({
     id: "depart", title: "Départ et transmission",
@@ -335,20 +364,6 @@ export function measure(stage: Stage): Vitals {
   };
 }
 
-/** Phrase prête à annoncer en OOC pour un joueur absent ou qui ne réagit pas. */
-export function oocAnnounce(v: Vitals): string {
-  const parts = [
-    v.fc !== "—" ? `FC ${v.fc}/min` : "pouls absent",
-    v.ta === "Imprenable" ? "TA imprenable" : `TA ${v.ta} mmHg`,
-    v.spo2 === "Non mesurable" ? "SpO2 non mesurable" : `SpO2 ${v.spo2} %`,
-    `FR ${v.fr}/min`,
-    `Glasgow ${v.gcs}`,
-    `glycémie ${v.gly} g/L`,
-  ];
-  if (v.etco2) parts.push(`EtCO2 ${v.etco2} mmHg`);
-  return `(( Constantes : ${parts.join(", ")}. ${v.peau}. Pupilles : ${v.pupilles.toLowerCase()}. ${v.resp}. ))`;
-}
-
 /** Stade de départ de l'hémorragie d'après les réponses (0 = compensé … 3 = pré-arrêt). */
 export function hemoStartStage(a: Answers): number {
   let s = 0;
@@ -358,4 +373,19 @@ export function hemoStartStage(a: Answers): number {
   if (a.radial === "absent") s += 2;
   if (a.saigne === "abondant") s += 1;
   return Math.min(3, Math.floor(s / 2));
+}
+
+/** Niveau d'une ligne : « ALS: » en tête = geste ou produit avancé (réservé aux medics formés). */
+export const isAls = (l: string) => l.startsWith("ALS:");
+export const stripAls = (l: string) => l.replace(/^ALS:\s*/, "");
+export type Level = "BLS" | "ALS" | "MIX";
+export function stepLevel(st: Step): Level {
+  const n = st.lines.filter(isAls).length;
+  return n === 0 ? "BLS" : n === st.lines.length ? "ALS" : "MIX";
+}
+/** Étapes affichées en mode « BLS seul » : on retire les lignes, doses et étapes avancées. */
+export function onlyBls(steps: Step[]): Step[] {
+  return steps
+    .filter((st) => stepLevel(st) !== "ALS")
+    .map((st) => ({ ...st, lines: st.lines.filter((l) => !isAls(l)), doses: st.doses?.filter((d) => !isAls(d)) }));
 }

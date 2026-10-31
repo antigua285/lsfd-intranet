@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ARREST_STAGES, HEMO_STAGES, QUESTIONS, SITUATIONS, buildSteps, hemoStartStage, measure, oocAnnounce, type SituationKey } from "@/lib/medic";
+import { ARREST_STAGES, HEMO_STAGES, QUESTIONS, SITUATIONS, buildSteps, hemoStartStage, isAls, measure, onlyBls, stepLevel, stripAls, type Level, type SituationKey } from "@/lib/medic";
 
 type Phase = "home" | "questions" | "guide";
 
@@ -14,6 +14,12 @@ function Row({ k, v, warn }: { k: string; v: string; warn?: boolean }) {
   );
 }
 
+const LEVEL_UI: Record<Level, { label: string; cls: string; bar: string }> = {
+  BLS: { label: "BLS · gestes de base", cls: "bg-sky-100 text-sky-900 border-sky-300", bar: "bg-sky-500" },
+  ALS: { label: "ALS · soins avancés", cls: "bg-violet-100 text-violet-900 border-violet-300", bar: "bg-violet-600" },
+  MIX: { label: "BLS + ALS", cls: "bg-sky-100 text-sky-900 border-sky-300", bar: "bg-gradient-to-r from-sky-500 to-violet-600" },
+};
+
 /** RAPID LS County Medic : guide pas à pas, constantes typiques OOC. Aide RP, à valider par vos medics. */
 export function Medic() {
   const [phase, setPhase] = useState<Phase>("home");
@@ -22,16 +28,17 @@ export function Medic() {
   const [extra, setExtra] = useState<Record<string, string>>({});
   const [idx, setIdx] = useState(0);
   const [stage, setStage] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [blsOnly, setBlsOnly] = useState(false);
 
-  const steps = useMemo(() => buildSteps(sit, answers, extra), [sit, answers, extra]);
+  const allSteps = useMemo(() => buildSteps(sit, answers, extra), [sit, answers, extra]);
+  const steps = useMemo(() => (blsOnly ? onlyBls(allSteps) : allSteps), [allSteps, blsOnly]);
   const stages = sit === "arret" ? ARREST_STAGES : HEMO_STAGES;
   const vit = useMemo(() => measure(stages[Math.min(stage, stages.length - 1)]), [stages, stage]);
   const questions = QUESTIONS[sit];
   const ready = questions.every((q) => answers[q.id]);
 
   function start(s: SituationKey) {
-    setSit(s); setAnswers({}); setExtra({}); setIdx(0); setCopied(false);
+    setSit(s); setAnswers({}); setExtra({}); setIdx(0);
     setStage(0);
     setPhase("questions");
   }
@@ -41,18 +48,13 @@ export function Medic() {
     setPhase("guide");
   }
   function switchToArrest(trauma: boolean) {
-    setSit("arret"); setAnswers({ cause: trauma ? "trauma" : "med", wit: "oui" }); setExtra({}); setIdx(0); setStage(0); setCopied(false);
+    setSit("arret"); setAnswers({ cause: trauma ? "trauma" : "med", wit: "oui" }); setExtra({}); setIdx(0); setStage(0);
   }
   const step = steps[Math.min(idx, steps.length - 1)];
   const needChoice = step.choice && !extra[step.choice.key];
   const better = sit === "arret" ? 1 : -1;
   const canBetter = stage + better >= 0 && stage + better < stages.length;
   const canWorse = stage - better >= 0 && stage - better < stages.length;
-  const announce = oocAnnounce(vit);
-
-  async function copy() {
-    try { await navigator.clipboard.writeText(announce); setCopied(true); window.setTimeout(() => setCopied(false), 1500); } catch { /* presse-papiers refusé */ }
-  }
 
   const header = (
     <div className="flex items-center justify-between bg-red-700 text-white px-3 py-1.5 text-[13px]">
@@ -60,7 +62,6 @@ export function Medic() {
       {phase !== "home" && <button type="button" className="underline text-[12px]" onClick={() => setPhase("home")}>Nouvelle situation</button>}
     </div>
   );
-  const notice = <p className="text-[11px] text-slate-500 px-3 py-1 border-t border-slate-200 bg-slate-50">Aide RP : à valider par vos medics. Les constantes sont indicatives et à annoncer en OOC.</p>;
 
   if (phase === "home") {
     return (
@@ -77,7 +78,6 @@ export function Medic() {
             ))}
           </div>
         </div>
-        {notice}
       </div>
     );
   }
@@ -102,7 +102,6 @@ export function Medic() {
           </div>
           <button type="button" disabled={!ready} onClick={begin} className="mt-5 px-4 py-2 rounded bg-red-700 text-white font-semibold disabled:opacity-40">Démarrer le guide</button>
         </div>
-        {notice}
       </div>
     );
   }
@@ -113,15 +112,40 @@ export function Medic() {
       <div className="flex-1 min-h-0 flex flex-col md:flex-row">
         <section className="md:w-3/5 min-h-0 flex flex-col border-b md:border-b-0 md:border-r border-slate-300" aria-label="Étapes">
           <div className="flex-1 overflow-auto p-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">Étape {Math.min(idx, steps.length - 1) + 1} / {steps.length}{step.tag ? ` · ${step.tag}` : ""}</p>
-            <h2 className="text-[16px] font-bold mt-0.5 mb-2" data-testid="medic-step-title">{step.title}</h2>
-            <ol className="list-decimal pl-5 space-y-1.5 text-[14px]">
-              {step.lines.map((l, i) => <li key={i}>{l}</li>)}
+            <div className="flex items-center gap-0.5 mb-2" aria-label="Progression" data-testid="medic-progress">
+              {steps.map((st, i) => (
+                <span key={st.id} title={st.title} className={`h-1.5 flex-1 rounded-full ${LEVEL_UI[stepLevel(st)].bar} ${i === Math.min(idx, steps.length - 1) ? "ring-2 ring-offset-1 ring-slate-800" : i < idx ? "opacity-40" : ""}`} />
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Étape {Math.min(idx, steps.length - 1) + 1} / {steps.length}{step.tag ? ` · ${step.tag}` : ""}</p>
+              <div className="inline-flex rounded border border-slate-300 overflow-hidden text-[11px]" role="group" aria-label="Niveau affiché">
+                <button type="button" aria-pressed={!blsOnly} data-testid="medic-all" onClick={() => { setBlsOnly(false); setIdx(0); }} className={`px-2 py-0.5 ${!blsOnly ? "bg-slate-800 text-white" : "bg-white"}`}>BLS + ALS</button>
+                <button type="button" aria-pressed={blsOnly} data-testid="medic-bls" onClick={() => { setBlsOnly(true); setIdx(0); }} className={`px-2 py-0.5 ${blsOnly ? "bg-sky-700 text-white" : "bg-white"}`}>BLS seul</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-1 mb-2">
+              <h2 className="text-[16px] font-bold" data-testid="medic-step-title">{step.title}</h2>
+              <span className={`text-[10px] font-semibold rounded border px-1.5 py-0.5 whitespace-nowrap ${LEVEL_UI[stepLevel(step)].cls}`} data-testid="medic-level">{LEVEL_UI[stepLevel(step)].label}</span>
+            </div>
+            <ol className="space-y-1.5 text-[14px]">
+              {step.lines.map((l, i) => (
+                <li key={i} className={isAls(l) ? "border-l-4 border-violet-500 bg-violet-50 pl-2 py-1 rounded-r" : "border-l-4 border-sky-400 pl-2 py-0.5"}>
+                  {isAls(l) && <span className="mr-1.5 text-[10px] font-bold text-violet-800 bg-violet-200 rounded px-1 align-middle">ALS</span>}
+                  {stripAls(l)}
+                </li>
+              ))}
             </ol>
-            {step.doses && (
+            {step.doses && step.doses.length > 0 && (
               <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-[13px]">
                 <p className="font-semibold text-amber-900">Posologies / réglages</p>
-                <ul className="list-disc pl-5">{step.doses.map((d, i) => <li key={i}>{d}</li>)}</ul>
+                <ul className="list-disc pl-5">{step.doses.map((d, i) => <li key={i}>{isAls(d) && <span className="mr-1 text-[10px] font-bold text-violet-800 bg-violet-200 rounded px-1">ALS</span>}{stripAls(d)}</li>)}</ul>
+              </div>
+            )}
+            {step.detail && (
+              <div className="mt-3 rounded bg-slate-100 border border-slate-200 p-2 text-[12.5px] text-slate-700" data-testid="medic-detail">
+                <p className="font-semibold text-slate-800 mb-0.5">Précisions sur le geste</p>
+                <ul className="list-disc pl-5 space-y-0.5">{step.detail.map((d, i) => <li key={i}>{d}</li>)}</ul>
               </div>
             )}
             {step.choice && (
@@ -168,14 +192,8 @@ export function Medic() {
               <button type="button" onClick={() => switchToArrest(true)} className="px-2 py-1 rounded bg-red-700 text-white">Arrêt cardiaque traumatique</button>
             )}
           </div>
-          <div className="mt-3 rounded border border-slate-300 bg-slate-50 p-2">
-            <p className="font-semibold mb-1">Annonce OOC prête</p>
-            <p className="text-[12px] text-slate-800" data-testid="medic-announce">{announce}</p>
-            <button type="button" onClick={copy} className="mt-1 px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-100 text-[12px]">{copied ? "Copié" : "Copier"}</button>
-          </div>
         </section>
       </div>
-      {notice}
     </div>
   );
 }
