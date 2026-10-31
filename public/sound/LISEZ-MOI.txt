@@ -1,0 +1,3 @@
+Sons : dépose ici des fichiers .mp3, .ogg, .wav, .m4a, .aac ou .webm.
+Le petit bouton lecture en haut à droite du bureau du MDC joue le suivant à chaque clic (ordre alphabétique, en boucle).
+Les fichiers sont lus au déploiement : après un ajout, commit + push comme pour les images.

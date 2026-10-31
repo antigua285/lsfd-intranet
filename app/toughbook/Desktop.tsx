@@ -8,6 +8,7 @@ import { loadMdcMapAction, type MdcMapData } from "./actions";
 import { Notepad } from "./Notepad";
 import { Medic } from "./Medic";
 import { DrugDoses, type DrugPreset } from "./DrugDoses";
+import { SoundEgg } from "./SoundEgg";
 
 const FMT_TIME = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" });
 const FMT_DATE = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -17,7 +18,7 @@ function AppIcon({ app, size }: { app: MdcApp; size: number }) {
   if (app.image && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={app.image} alt="" aria-hidden="true" onError={() => setBroken(true)} className="rounded-[22%] shadow-md shrink-0 object-cover bg-white" style={{ width: size, height: size }} />
+      <img src={app.image} alt="" aria-hidden="true" onError={() => setBroken(true)} ref={(el) => { if (el && el.complete && el.naturalWidth === 0) window.setTimeout(() => setBroken(true), 0); }} className="rounded-[22%] shadow-md shrink-0 object-cover bg-white" style={{ width: size, height: size }} />
     );
   }
   return (
@@ -32,7 +33,7 @@ const WinLogo = () => (
 );
 
 /** Bureau du Toughbook : icônes, fenêtres (applications ouvertes en même temps), barre des tâches et menu Démarrer. */
-export function Desktop() {
+export function Desktop({ sounds = [] }: { sounds?: string[] }) {
   const [open, setOpen] = useState<string[]>([]); // ordre d'ouverture
   const [minimized, setMinimized] = useState<Set<string>>(new Set());
   const [active, setActive] = useState<string | null>(null);
@@ -131,6 +132,8 @@ export function Desktop() {
             </li>
           ))}
         </ul>
+
+        <SoundEgg sounds={sounds} />
 
         {/* Fenêtres : toutes restent ouvertes (invisibles quand réduites) pour garder leur état */}
         {open.map((key) => {
