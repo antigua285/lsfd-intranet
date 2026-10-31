@@ -6,6 +6,7 @@ import { OfficialBanner } from "@/components/OfficialBanner";
 import { ChromeGate } from "@/components/ChromeGate";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { HeaderUser, HeaderUserSkeleton } from "@/components/HeaderUser";
+import { ToughbookLink } from "@/components/ToughbookLink";
 import { SidebarLinks, SidebarLinksSkeleton } from "@/components/SidebarLinks";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -32,6 +33,11 @@ export default function RootLayout({
           navSlot={
             <Suspense fallback={<SidebarLinksSkeleton />}>
               <SidebarLinks />
+            </Suspense>
+          }
+          toughbookSlot={
+            <Suspense fallback={null}>
+              <ToughbookLink />
             </Suspense>
           }
           userSlot={

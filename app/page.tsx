@@ -3,6 +3,7 @@ import Link from "next/link";
 // Liste des modules inspirée du document de référence
 import { Suspense } from "react";
 import { getVisibleModules } from "@/lib/access";
+import { DivisionDashboard } from "@/components/DivisionDashboard";
 
 export default function Home() {
   return (
@@ -48,6 +49,11 @@ async function HomeContent() {
     </Link>
   ))}
 </div>
+
+      {/* Dashboard → séparateur → divisions / unités (visibles selon les flags divisionnaires) */}
+      <Suspense fallback={null}>
+        <DivisionDashboard />
+      </Suspense>
 
     </main>
   );

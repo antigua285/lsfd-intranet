@@ -6,9 +6,11 @@ interface HeaderProps {
   showBurger: boolean;
   /** Bloc profil de l'utilisateur connecté (photo, nom, grade | station). */
   userSlot: ReactNode;
+  /** Icône tablette vers le Toughbook (rendue côté serveur, absente si pas d'accès). */
+  toughbookSlot?: ReactNode;
 }
 
-export function Header({ toggleSidebar, showBurger, userSlot }: HeaderProps) {
+export function Header({ toggleSidebar, showBurger, userSlot, toughbookSlot }: HeaderProps) {
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex justify-between items-center font-['Calibri','Arial',sans-serif] shrink-0 z-10">
       
@@ -46,6 +48,9 @@ export function Header({ toggleSidebar, showBurger, userSlot }: HeaderProps) {
       {/* Zone Droite : Navigation Rapide & Profil Utilisateur */}
       <div className="flex items-center justify-end gap-3 w-1/3">
         
+        {/* Accès au MDC (Toughbook), à gauche du bouton Home / panneau admin */}
+        {toughbookSlot}
+
         {/* Bouton Home et Séparateur (Visibles uniquement sur les sous-pages) */}
         {showBurger && (
           <div className="flex items-center gap-3 mr-2">

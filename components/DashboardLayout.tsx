@@ -12,9 +12,11 @@ interface DashboardLayoutProps {
   userSlot: ReactNode;
   /** Liens du menu latéral (rendus côté serveur, filtrés par flags). */
   navSlot: ReactNode;
+  /** Icône tablette vers le Toughbook (rendue côté serveur). */
+  toughbookSlot?: ReactNode;
 }
 
-export function DashboardLayout({ children, userSlot, navSlot }: DashboardLayoutProps) {
+export function DashboardLayout({ children, userSlot, navSlot, toughbookSlot }: DashboardLayoutProps) {
   const pathname = usePathname();
   // On vérifie si on est sur la racine (le hub principal)
   const isHomePage = pathname === "/";
@@ -46,6 +48,7 @@ export function DashboardLayout({ children, userSlot, navSlot }: DashboardLayout
           toggleSidebar={toggleSidebar}
           showBurger={!isHomePage} // On masque le burger sur l'accueil
           userSlot={userSlot}
+          toughbookSlot={toughbookSlot}
         />
         <main className="flex-1 overflow-y-auto p-6 bg-white">
           {children}

@@ -1,0 +1,5 @@
+LOGOS DES DIVISIONS
+Déposez ici le logo de chaque division (PNG, idéalement carré, fond transparent) :
+  airops.png  -> Air Operations Section
+Tant que le fichier est absent, la tuile affiche un écusson avec le sigle (AOS).
+Pour ajouter une division : copier un bloc dans config/divisions.ts (clé, titre, lien, logo, flags).
