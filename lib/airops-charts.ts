@@ -57,7 +57,7 @@ export type Mark =
   | { id: string; t: "line"; color: string; pts: [number, number][] }
   | { id: string; t: "text"; color: string; x: number; y: number; text: string }
   | { id: string; t: "symbol"; color: string; x: number; y: number; kind: PointKind; text: string };
-export type Pattern = { id: string; start: [number, number]; end: [number, number]; side: "L" | "R"; altAgl: number; heli: boolean };
+export type Pattern = { id: string; start: [number, number]; end: [number, number]; side: "L" | "R"; altAgl: number; heli: boolean; /** Multiplicateur de taille du circuit (1 = standard). */ size?: number };
 export type PlanData = { route: RoutePt[]; tas: number; windDir: number | null; windSpd: number; magVar: number; marks: Mark[]; patterns: Pattern[] };
 export const PLAN_LIMITS = { route: 40, marks: 150, linePts: 400, patterns: 4, title: 80, name: 40, text: 60 };
 export const emptyPlan = (): PlanData => ({ route: [], tas: 100, windDir: null, windSpd: 0, magVar: 13, marks: [], patterns: [] });
@@ -112,9 +112,11 @@ export function patternGeometry(p: Pattern, aspect: number, nmPerWidth: number |
   const left = { x: u.y, y: -u.x };
   const n = p.side === "L" ? left : { x: -left.x, y: -left.y };
   // Dimensions : en milles si l'échelle est connue (hélicoptère = circuit plus serré), sinon proportionnelles à la piste.
-  const dim = p.heli ? { off: 0.35, ext: 0.4, fin: 0.7 } : { off: 0.6, ext: 0.6, fin: 1.1 };
-  const w = (nm: number, rel: number) => (nmPerWidth ? nm / nmPerWidth : L * rel);
-  const off = w(dim.off, 0.45), ext = w(dim.ext, 0.4), fin = w(dim.fin, 0.8);
+  // Largeur, montée et finale en milles nautiques (avion : circuit ample, hélicoptère : plus serré), × le réglage de taille.
+  const dim = p.heli ? { off: 0.8, ext: 1.0, fin: 1.4 } : { off: 1.2, ext: 1.6, fin: 2.4 };
+  const k = Math.min(6, Math.max(0.25, p.size ?? 1));
+  const w = (nm: number, rel: number) => (nmPerWidth ? nm * k / nmPerWidth : L * rel * k);
+  const off = w(dim.off, p.heli ? 0.9 : 1.3), ext = w(dim.ext, p.heli ? 0.8 : 1.2), fin = w(dim.fin, p.heli ? 1.4 : 2.0);
   const F = { x: T.x - u.x * fin, y: T.y - u.y * fin };
   const B = { x: F.x + n.x * off, y: F.y + n.y * off };
   const C1 = { x: E.x + u.x * ext, y: E.y + u.y * ext };

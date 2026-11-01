@@ -53,6 +53,10 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
   const [patSide, setPatSide] = useState<"L" | "R">("L");
   const [patAlt, setPatAlt] = useState(1000);
   const [patHeli, setPatHeli] = useState(true);
+  const [patSize, setPatSize] = useState(1);
+  const [symScale, setSymScale] = useState(1.4);
+  const [zoomTick, setZoomTick] = useState(0);
+  const [focusPattern, setFocusPattern] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [pointForm, setPointForm] = useState<PointForm | null>(null);
   const [calib, setCalib] = useState<{ pts: [number, number][]; dist: string } | null>(null);
@@ -71,8 +75,8 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
   const undo = () => setPast((p) => { if (!p.length) return p; setPlan(p[p.length - 1]); return p.slice(0, -1); });
 
   // Les fonctions appelées par Leaflet doivent voir l'état le plus récent.
-  const latest = useRef({ tool, planning, plan, points, label, color, lineDraft, patDraft, patSide, patAlt, patHeli, calib, isCmd, commit, selected });
-  useEffect(() => { latest.current = { tool, planning, plan, points, label, color, lineDraft, patDraft, patSide, patAlt, patHeli, calib, isCmd, commit, selected }; });
+  const latest = useRef({ tool, planning, plan, points, label, color, lineDraft, patDraft, patSide, patAlt, patHeli, patSize, calib, isCmd, commit, selected });
+  useEffect(() => { latest.current = { tool, planning, plan, points, label, color, lineDraft, patDraft, patSide, patAlt, patHeli, patSize, calib, isCmd, commit, selected }; });
   type Actions = { markerClick: (p: ChartPoint) => void; mapClick: (ll: Leaflet.LatLng) => void; movePoint: (p: ChartPoint, x: number, y: number) => void };
   const actions = useRef<Actions>({ markerClick: () => {}, mapClick: () => {}, movePoint: () => {} });
 
@@ -108,6 +112,7 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
       ro.observe(containerRef.current);
       for (const k of ["points", "route", "marks", "pattern", "draft"] as const) g[k] = L.layerGroup().addTo(map);
       map.on("click", (e: Leaflet.LeafletMouseEvent) => actions.current.mapClick(e.latlng));
+      map.on("zoomend", () => setZoomTick((t) => t + 1));
       LRef.current = L; mapRef.current = map;
       setMapVersion((v) => v + 1);
     })();
@@ -146,7 +151,7 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
     else if (s.tool.startsWith("sym:")) s.commit({ ...s.plan, marks: [...s.plan.marks, { id: uid(), t: "symbol", color: s.color, x, y, kind: s.tool.slice(4) as PointKind, text: s.label.trim().slice(0, 60) } as Mark].slice(0, 150) });
     else if (s.tool === "pattern") {
       if (!s.patDraft) setPatDraft([x, y]);
-      else { s.commit({ ...s.plan, patterns: [...s.plan.patterns, { id: uid(), start: s.patDraft, end: [x, y] as [number, number], side: s.patSide, altAgl: s.patAlt, heli: s.patHeli }].slice(0, 4) }); setPatDraft(null); }
+      else { const pid = uid(); setFocusPattern(pid); s.commit({ ...s.plan, patterns: [...s.plan.patterns, { id: pid, start: s.patDraft, end: [x, y] as [number, number], side: s.patSide, altAgl: s.patAlt, heli: s.patHeli, size: s.patSize }].slice(0, 4) }); setPatDraft(null); }
     }
   };
 
@@ -161,13 +166,13 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
     for (const p of points) {
       const k = pointKind(p.kind);
       const el = dom(symbolSvg(p.kind, k.color), `ac-pt${selected === p.id ? " is-sel" : ""}`, p.ident || p.name);
-      const m = L.marker(toLL(L, p.x, p.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: [30, 30], iconAnchor: [15, 15] }), draggable: edit, keyboard: false, zIndexOffset: 100 });
+      const m = L.marker(toLL(L, p.x, p.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: [34, 34], iconAnchor: [17, 17] }), draggable: edit, keyboard: false, zIndexOffset: 100, interactive: !planning || tool === "pan" || tool === "route" });
       m.on("click", (e) => { L.DomEvent.stopPropagation(e); actions.current.markerClick(p); });
       m.on("dragend", () => { const [x, y] = frac(m.getLatLng()); actions.current.movePoint(p, x, y); });
       m.addTo(g);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapVersion, points, selected, tool, isCmd, size]);
+  }, [mapVersion, points, selected, tool, isCmd, size, planning]);
 
   /* ------------------------------------------------------------ dessin : route */
   const legs = computeLegs(plan.route, aspect, scale, plan.tas, plan.windDir, plan.windSpd, plan.magVar);
@@ -176,12 +181,16 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
     if (!L || !g || !size) return;
     g.clearLayers();
     const route = plan.route;
-    if (route.length > 1) L.polyline(route.map((p) => toLL(L, p.x, p.y)), { color: "#c026d3", weight: 4, opacity: 0.9, interactive: false }).addTo(g);
+    if (route.length > 1) {
+      const ll = route.map((p) => toLL(L, p.x, p.y));
+      L.polyline(ll, { color: "#fff", weight: 10, opacity: 0.9, interactive: false }).addTo(g);
+      L.polyline(ll, { color: "#c026d3", weight: 5, opacity: 1, interactive: false }).addTo(g);
+    }
     const erase = planning && tool === "erase";
     route.forEach((p, i) => {
       const el = document.createElement("div"); el.className = "ac-wp"; el.textContent = String(i + 1);
       const name = document.createElement("span"); name.className = "ac-lab"; name.textContent = p.name; el.appendChild(name);
-      const m = L.marker(toLL(L, p.x, p.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: [24, 24], iconAnchor: [12, 12] }), draggable: planning && !erase, keyboard: false, zIndexOffset: 500 });
+      const m = L.marker(toLL(L, p.x, p.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: [26, 26], iconAnchor: [13, 13] }), draggable: planning && !erase, keyboard: false, zIndexOffset: 500 });
       m.on("click", (e) => { L.DomEvent.stopPropagation(e); if (erase) { const s = latest.current; s.commit({ ...s.plan, route: s.plan.route.filter((_, j) => j !== i) }); } });
       m.on("dragend", () => { const [x, y] = frac(m.getLatLng()); const s = latest.current; s.commit({ ...s.plan, route: s.plan.route.map((q, j) => (j === i ? { ...q, x, y, pointId: undefined } : q)) }); });
       m.addTo(g);
@@ -206,24 +215,31 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
     const del = (id: string, kind: "mark" | "pattern") => { const s = latest.current; s.commit(kind === "mark" ? { ...s.plan, marks: s.plan.marks.filter((m) => m.id !== id) } : { ...s.plan, patterns: s.plan.patterns.filter((m) => m.id !== id) }); };
     for (const m of plan.marks as Mark[]) {
       if (m.t === "line") {
-        const pl = L.polyline(m.pts.map(([x, y]) => toLL(L, x, y)), { color: m.color, weight: 3, opacity: 0.9, interactive: erase }).addTo(gm);
+        const ll = m.pts.map(([x, y]) => toLL(L, x, y));
+        L.polyline(ll, { color: "#fff", weight: 8, opacity: 0.85, interactive: false }).addTo(gm);
+        const pl = L.polyline(ll, { color: m.color, weight: 4, opacity: 1, interactive: erase }).addTo(gm);
         if (erase) pl.on("click", (e) => { L.DomEvent.stopPropagation(e); del(m.id, "mark"); });
       } else {
         const el = m.t === "text" ? textEl("ac-txt", m.text) : dom(symbolSvg(m.kind, m.color), "ac-pt", m.text || undefined);
         if (m.t === "text") el.style.color = m.color;
-        const mk = L.marker(toLL(L, m.x, m.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: m.t === "text" ? [0, 0] : [30, 30], iconAnchor: m.t === "text" ? [0, 0] : [15, 15] }), interactive: erase, keyboard: false, zIndexOffset: 300 }).addTo(gm);
+        const mk = L.marker(toLL(L, m.x, m.y), { icon: L.divIcon({ html: el, className: "ac-wrap", iconSize: m.t === "text" ? [0, 0] : [34, 34], iconAnchor: m.t === "text" ? [0, 0] : [17, 17] }), interactive: erase, keyboard: false, zIndexOffset: 300 }).addTo(gm);
         if (erase) mk.on("click", (e) => { L.DomEvent.stopPropagation(e); del(m.id, "mark"); });
       }
     }
     for (const p of plan.patterns) {
       const geo = patternGeometry(p, aspect, scale);
       if (!geo) continue;
-      L.polyline(geo.runway.map(([x, y]) => toLL(L, x, y)), { color: "#111827", weight: 2, dashArray: "2 6", interactive: false }).addTo(gp);
+      L.polyline(geo.runway.map(([x, y]) => toLL(L, x, y)), { color: "#111827", weight: 3, dashArray: "2 6", interactive: false }).addTo(gp);
       for (const leg of geo.legs) {
-        const line = L.polyline(leg.pts.map(([x, y]) => toLL(L, x, y)), { color: leg.name === "FINAL" ? "#16a34a" : "#2563eb", weight: 4, opacity: 0.9, interactive: erase }).addTo(gp);
+        const ll = leg.pts.map(([x, y]) => toLL(L, x, y));
+        L.polyline(ll, { color: "#fff", weight: 10, opacity: 0.9, interactive: false }).addTo(gp);
+        const line = L.polyline(ll, { color: leg.name === "FINAL" ? "#16a34a" : "#2563eb", weight: 5, opacity: 1, interactive: erase }).addTo(gp);
         if (erase) line.on("click", (e) => { L.DomEvent.stopPropagation(e); del(p.id, "pattern"); });
         const a = leg.pts[0], b = leg.pts[1];
         const mid = toLL(L, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+        const map = mapRef.current;
+        // Étiquette seulement si la branche est assez longue à l'écran (sinon les noms se chevauchent) : zoomer pour les lire.
+        if (map) { const pa = map.latLngToContainerPoint(toLL(L, a[0], a[1])), pb = map.latLngToContainerPoint(toLL(L, b[0], b[1])); if (Math.hypot(pb.x - pa.x, pb.y - pa.y) < 55) continue; }
         const tc = ((Math.atan2(b[0] - a[0], -(b[1] - a[1]) * aspect) * 180) / Math.PI + 360) % 360;
         const t = textEl("ac-pat", `${leg.name === "FINAL" ? "▶ " : ""}${leg.name}${leg.name === "DOWNWIND" ? ` · ${p.altAgl} ft AGL` : ""}`);
         t.style.color = leg.name === "FINAL" ? "#15803d" : "#1d4ed8"; t.title = `${Math.round(tc)}°`;
@@ -231,21 +247,33 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapVersion, plan.marks, plan.patterns, scale, planning, tool, size]);
+  }, [mapVersion, plan.marks, plan.patterns, scale, planning, tool, size, zoomTick]);
 
   /* ------------------------------------------------------------ dessin : brouillons */
   useEffect(() => {
     const L = LRef.current, g = layers.current.draft;
     if (!L || !g || !size) return;
     g.clearLayers();
-    const dot = (x: number, y: number) => L.marker(toLL(L, x, y), { icon: L.divIcon({ html: textEl("ac-draft", ""), className: "ac-wrap", iconSize: [12, 12], iconAnchor: [6, 6] }), interactive: false }).addTo(g);
+    const dot = (x: number, y: number) => L.marker(toLL(L, x, y), { icon: L.divIcon({ html: textEl("ac-draft", ""), className: "ac-wrap", iconSize: [16, 16], iconAnchor: [8, 8] }), interactive: false }).addTo(g);
     if (lineDraft.length) { L.polyline(lineDraft.map(([x, y]) => toLL(L, x, y)), { color, weight: 3, dashArray: "6 5", interactive: false }).addTo(g); lineDraft.forEach(([x, y]) => dot(x, y)); }
     if (patDraft) dot(patDraft[0], patDraft[1]);
     if (calib) { calib.pts.forEach(([x, y]) => dot(x, y)); if (calib.pts.length === 2) L.polyline(calib.pts.map(([x, y]) => toLL(L, x, y)), { color: "#dc2626", weight: 2, dashArray: "4 4", interactive: false }).addTo(g); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapVersion, lineDraft, patDraft, calib, color, size]);
 
+  useEffect(() => {
+    const L = LRef.current, map = mapRef.current;
+    if (!focusPattern || !L || !map || !size) return;
+    const p = plan.patterns.find((x) => x.id === focusPattern);
+    const geo = p && patternGeometry(p, aspect, scale);
+    if (!geo) return;
+    const pts = [...geo.runway, ...geo.legs.flatMap((l) => l.pts)].map(([x, y]) => toLL(L, x, y));
+    map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 2, animate: false });
+    queueMicrotask(() => setFocusPattern(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusPattern, plan.patterns]);
   useEffect(() => { containerRef.current?.classList.toggle("is-tool", tool !== "pan"); }, [tool, mapVersion]);
+  useEffect(() => { containerRef.current?.style.setProperty("--ac-s", String(symScale)); }, [symScale, mapVersion]);
 
   /* ------------------------------------------------------------ opérations */
   const pick = (t: Tool) => { setLineDraft([]); setPatDraft(null); setCalib(null); setPointForm(null); setTool(t); setMsg(null); };
@@ -361,6 +389,7 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
                 <span className="font-semibold">Clic 1 : seuil d&apos;atterrissage · clic 2 : bout de piste.</span>
                 <select value={patSide} onChange={(e) => setPatSide(e.target.value as "L" | "R")} aria-label="Main du circuit" data-testid="pat-side" className="border border-slate-300 rounded px-2 py-1.5 bg-white"><option value="L">Circuit à gauche</option><option value="R">Circuit à droite</option></select>
                 <label className="flex items-center gap-1">Hauteur <input type="number" min={0} max={10000} step={100} value={patAlt} onChange={(e) => setPatAlt(Number(e.target.value) || 0)} data-testid="pat-alt" className="w-20 border border-slate-300 rounded px-2 py-1.5" /> ft AGL</label>
+                <label className="flex items-center gap-1">Taille <input type="range" min={0.5} max={4} step={0.25} value={patSize} onChange={(e) => setPatSize(Number(e.target.value))} aria-label="Taille du circuit" data-testid="pat-size" className="w-28" /> ×{patSize.toLocaleString("fr-FR")}</label>
                 <label className="flex items-center gap-1"><input type="checkbox" checked={patHeli} onChange={(e) => setPatHeli(e.target.checked)} className="w-4 h-4" />Hélicoptère (circuit serré)</label>
                 {patDraft && <span className="text-[#c00d0d] font-bold">Seuil posé : clique le bout de piste.</span>}
               </div>
@@ -372,6 +401,14 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
             {toolBtn("pan", "✋ Consulter", "view")}{toolBtn("pt-edit", "＋ Points de carte", "pt-edit")}{toolBtn("calibrate", "📏 Calibrer l'échelle", "calibrate")}
           </div>
         )}
+        <div className="flex flex-wrap items-center gap-2 mb-1 text-[12px] text-slate-600">
+          <span className="font-semibold">Taille des symboles</span>
+          <span className="inline-flex rounded border border-slate-300 overflow-hidden" role="group" aria-label="Taille des symboles">
+            {([["S", 1], ["M", 1.4], ["L", 1.9]] as const).map(([l, v]) => <button key={l} type="button" aria-pressed={symScale === v} data-testid={`sym-${l}`} onClick={() => setSymScale(v)} className={`min-h-8 px-3 font-bold border-l first:border-l-0 border-slate-300 ${symScale === v ? "bg-[#0d2644] text-white" : "bg-white"}`}>{l}</button>)}
+          </span>
+          {planning && chart.kind === "airport" && <span className="text-slate-500">Diagramme d&apos;aérodrome : idéal pour le circuit. La route se prépare sur le Sectional.</span>}
+          {planning && chart.kind === "sectional" && <span className="text-slate-500">Sectional : carte de navigation VFR, support de la route et des circuits.</span>}
+        </div>
         <div className="relative border border-slate-300 bg-slate-200 h-[68vh] min-h-[420px]">
           {!size && <p className="absolute inset-0 grid place-items-center text-[13px] text-slate-500">Chargement de la carte…</p>}
           <div ref={containerRef} className="ac-map absolute inset-0" data-testid="chart-map" />
@@ -475,6 +512,7 @@ export function ChartWorkspace({ chart, points: initialPoints, plans: initialPla
                     <li key={p.id} className="flex items-center gap-2 text-[12.5px]" data-testid="pattern-row">
                       <span className="font-mono font-bold border border-slate-700 px-1">RWY {rwy}</span>
                       <span>main {p.side === "L" ? "gauche" : "droite"} · {p.altAgl} ft AGL · {p.heli ? "hélico" : "avion"}{g?.lengthNm ? ` · piste ${fmtNm(g.lengthNm, "ft")}` : ""}</span>
+                      <input type="range" min={0.5} max={4} step={0.25} value={p.size ?? 1} aria-label="Taille de ce circuit" data-testid="pattern-size" onChange={(e) => commit({ ...plan, patterns: plan.patterns.map((x: Pattern) => (x.id === p.id ? { ...x, size: Number(e.target.value) } : x)) })} className="w-20" />
                       <button type="button" aria-label="Supprimer ce circuit" onClick={() => commit({ ...plan, patterns: plan.patterns.filter((x: Pattern) => x.id !== p.id) })} className="ml-auto text-red-700 text-[12px] underline">Suppr.</button>
                     </li>
                   );

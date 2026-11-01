@@ -126,7 +126,9 @@ export function parsePlanData(raw: unknown): Result<PlanData> {
     const q = (p ?? {}) as Record<string, unknown>;
     const id = shortText(q.id, 16), start = pointXY(q.start), end = pointXY(q.end), alt = num(q.altAgl, 0, 10000);
     if (!id || !start || !end || alt === null || (q.side !== "L" && q.side !== "R")) return { ok: false, error: "Circuit invalide." };
-    out.patterns.push({ id, start, end, side: q.side, altAgl: Math.round(alt), heli: q.heli === true } satisfies Pattern);
+    const size = q.size === undefined ? 1 : num(q.size, 0.25, 6);
+    if (size === null) return { ok: false, error: "Taille de circuit invalide (0,25 à 6)." };
+    out.patterns.push({ id, start, end, side: q.side, altAgl: Math.round(alt), heli: q.heli === true, size } satisfies Pattern);
   }
   return { ok: true, value: out };
 }
