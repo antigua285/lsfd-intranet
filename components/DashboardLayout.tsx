@@ -42,6 +42,8 @@ export function DashboardLayout({ children, userSlot, navSlot, toughbookSlot }: 
     <div className={`flex flex-1 overflow-hidden${isHomePage ? " fd98-home" : ""}`}>
       {/* La sidebar n'est rendue que si on N'EST PAS sur la page d'accueil */}
       {!isHomePage && <Sidebar isOpen={isSidebarOpen} linksSlot={navSlot} />}
+      {/* Accueil : menu latéral réservé au style fd98 (masqué par défaut), toujours déroulé */}
+      {isHomePage && <div className="fd-side"><Sidebar isOpen linksSlot={navSlot} /></div>}
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header

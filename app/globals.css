@@ -26,75 +26,119 @@ body {
 
 /* ───────────────────────────────────────────────────────────────────────────────────────────────
    Thème « fd98 » (easter egg : taper fd98 hors champ de saisie, voir components/Fd98Toggle.tsx).
-   Intranet institutionnel fin 90 / début 2000 : gris, biseaux 3D, grosses bordures, peu d'images.
+   Site institutionnel fin 90 : fond blanc, menu latéral fixe, barre « Home », grandes tuiles en fondu.
    Limité pour l'instant au tableau de bord (.fd98-home). Aucun effet tant que data-theme n'est pas "fd98".
    ─────────────────────────────────────────────────────────────────────────────────────────────── */
-.fd-only { display: none; }
+.fd-only, .fd-side { display: none; }
+/* (le menu latéral de l'accueil n'apparaît qu'en fd98) */
 
 html[data-theme="fd98"] {
-  --fd-grey: #c0c0c0;
-  --fd-light: #dfdfdf;
-  --fd-navy: #000080;
-  --fd-bevel-out: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
-  --fd-bevel-in: inset -1px -1px #ffffff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+  --fd-blue: #0d2644;      /* bleu du site « City of Los Santos » */
+  --fd-blue-dark: #071a30;
+  --fd-blue-soft: #9cc3ee;
+  --fd-link: #0000ee;
 }
 
-/* Bandeau officiel : barre grise biseautée (uniquement quand le tableau de bord est affiché) */
-html[data-theme="fd98"] body:has(.fd98-home) .fd-banner {
-  background: var(--fd-grey); color: #000; font-family: Tahoma, "MS Sans Serif", Arial, sans-serif; font-size: 11px;
-  box-shadow: var(--fd-bevel-out); padding: 4px 10px;
-}
-html[data-theme="fd98"] body:has(.fd98-home) .fd-banner a {
-  background: var(--fd-grey); color: #000; border: 0; border-radius: 0; box-shadow: var(--fd-bevel-out); padding: 2px 8px;
-}
-html[data-theme="fd98"] body:has(.fd98-home) .fd-banner a:active { box-shadow: var(--fd-bevel-in); }
-html[data-theme="fd98"] body:has(.fd98-home) .fd-banner img { display: none; }
+/* Bandeau officiel : même bleu, boutons carrés (uniquement avec le tableau de bord affiché) */
+html[data-theme="fd98"] body:has(.fd98-home) .fd-banner { font-family: "Times New Roman", Times, serif; font-size: 13px; }
+html[data-theme="fd98"] body:has(.fd98-home) .fd-banner a { border-radius: 0; transition: none; }
 
 html[data-theme="fd98"] .fd98-home,
-html[data-theme="fd98"] .fd98-home * { border-radius: 0; font-family: Tahoma, "MS Sans Serif", Arial, sans-serif; }
-html[data-theme="fd98"] .fd98-home * { transition: none; }
+html[data-theme="fd98"] .fd98-home * { border-radius: 0; transition: none; }
+html[data-theme="fd98"] .fd98-home { font-family: Verdana, Arial, Helvetica, sans-serif; }
 
-/* En-tête */
-html[data-theme="fd98"] .fd98-home header { background: var(--fd-grey); border-bottom: 0; box-shadow: var(--fd-bevel-out); padding: 6px 10px; }
-html[data-theme="fd98"] .fd98-home header input { background: #fff; border: 0; box-shadow: var(--fd-bevel-in); padding: 3px 6px 3px 28px; font-size: 12px; }
-html[data-theme="fd98"] .fd98-home header a,
-html[data-theme="fd98"] .fd98-home header button { color: #000; }
-
-/* Zone de contenu : fond gris « bureau » + fenêtre centrale */
-html[data-theme="fd98"] .fd98-home .fd-main { background: #008080; padding: 14px; }
-html[data-theme="fd98"] .fd98-home .fd-main > main {
-  background: var(--fd-grey); box-shadow: var(--fd-bevel-out); padding: 3px 3px 10px; max-width: 1000px;
+/* En-tête : blanc, filet simple ; la barre de recherche cède la place à « Search the site » */
+html[data-theme="fd98"] .fd98-home header { background: #fff; border-bottom: 1px solid #999; padding: 6px 14px; }
+html[data-theme="fd98"] .fd98-home .fd-searchbox { display: none; }
+html[data-theme="fd98"] .fd98-home .fd-search {
+  display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; cursor: pointer;
+  font-family: "Times New Roman", Times, serif; font-style: italic; font-weight: bold; font-size: 14px; color: var(--fd-blue);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, .25);
 }
+html[data-theme="fd98"] .fd98-home .fd-search:hover span { text-decoration: underline; }
+
+/* Menu latéral : toujours déroulé, liens simples séparés par des filets (façon Centrelink) */
+html[data-theme="fd98"] .fd98-home .fd-side { display: flex; }
+html[data-theme="fd98"] .fd98-home .fd-side > div { display: flex; width: 210px !important; }
+html[data-theme="fd98"] .fd98-home .fd-aside { width: 210px; background: #fff; border-right: 3px solid var(--fd-blue); padding: 0 14px; }
+html[data-theme="fd98"] .fd98-home .fd-side-head { background: #fff; border-bottom: 2px solid var(--fd-blue); padding: 18px 0 10px; margin-bottom: 8px; }
+html[data-theme="fd98"] .fd98-home .fd-side-head p { font-family: "Times New Roman", Times, serif; font-size: 20px; font-weight: bold; color: var(--fd-blue); text-transform: none; letter-spacing: 0; }
+html[data-theme="fd98"] .fd98-home .fd-aside nav { background: #fff; padding-top: 0; }
+html[data-theme="fd98"] .fd98-home .fd-aside nav ul { gap: 0; }
+html[data-theme="fd98"] .fd98-home .fd-aside nav li { border-bottom: 1px solid #c9d3df; }
+html[data-theme="fd98"] .fd98-home .fd-aside nav a {
+  padding: 11px 2px; border-left: 0; font-size: 13px; font-weight: bold; color: var(--fd-blue); background: none;
+}
+html[data-theme="fd98"] .fd98-home .fd-aside nav a:hover { text-decoration: underline; background: none; }
+html[data-theme="fd98"] .fd98-home .fd-aside nav svg { display: none; }
+html[data-theme="fd98"] .fd98-home .fd-side-home {
+  display: block; margin: 14px 0; padding: 8px 6px; background: var(--fd-blue); color: #fff; font-weight: bold; font-size: 13px; text-decoration: none;
+}
+html[data-theme="fd98"] .fd98-home .fd-side-foot { background: #fff; border-top: 2px solid var(--fd-blue); padding: 10px 0; }
+
+/* Contenu : fond blanc */
+html[data-theme="fd98"] .fd98-home .fd-main { background: #fff; padding: 14px 24px; }
+html[data-theme="fd98"] .fd98-home .fd-main > main { max-width: 960px; margin: 0; }
 html[data-theme="fd98"] .fd98-home .fd-only { display: block; }
-html[data-theme="fd98"] .fd98-home .fd-titlebar {
-  display: flex; justify-content: space-between; background: linear-gradient(90deg, var(--fd-navy), #1084d0); color: #fff;
-  font-weight: bold; font-size: 12px; padding: 3px 6px; margin-bottom: 10px; letter-spacing: 0;
+
+/* Barre « HOME » avec raccourcis à droite */
+html[data-theme="fd98"] .fd98-home .fd-homebar { display: flex; align-items: stretch; justify-content: space-between; background: var(--fd-blue); margin-bottom: 18px; min-height: 44px; }
+html[data-theme="fd98"] .fd98-home .fd-homebox {
+  align-self: center; margin: 5px 8px; padding: 2px 16px; border: 2px solid var(--fd-blue-soft); color: #fff;
+  font-family: "Times New Roman", Times, serif; font-size: 26px; font-weight: bold; line-height: 1.2;
 }
-html[data-theme="fd98"] .fd98-home .fd-foot { margin: 14px 10px 0; padding-top: 6px; border-top: 2px groove #fff; font-size: 10px; color: #404040; text-align: center; }
+html[data-theme="fd98"] .fd98-home .fd-homebtns { display: flex; align-items: stretch; }
+html[data-theme="fd98"] .fd98-home .fd-homebtns a {
+  display: flex; align-items: center; padding: 0 18px; margin-left: 2px; background: var(--fd-blue-dark); color: var(--fd-blue-soft);
+  font-weight: bold; font-size: 13px; letter-spacing: .04em; text-decoration: none;
+}
+html[data-theme="fd98"] .fd98-home .fd-homebtns a:hover { background: #12365f; color: #fff; }
 
-html[data-theme="fd98"] .fd98-home .fd-head { margin: 4px 10px 12px; gap: 8px; }
-html[data-theme="fd98"] .fd98-home .fd-head h1 { font-family: "Times New Roman", Times, serif; font-size: 22px; color: var(--fd-navy); text-transform: none; letter-spacing: 0; }
-html[data-theme="fd98"] .fd98-home .fd-head div { background: #808080; width: 2px; box-shadow: 1px 0 #fff; }
-html[data-theme="fd98"] .fd98-home .fd-head p { color: #000; font-size: 12px; }
+/* Titre et accroche : grand titre ombré puis phrase en italique centrée */
+html[data-theme="fd98"] .fd98-home .fd-head { flex-direction: column; align-items: center; margin: 6px 0 18px; gap: 4px; }
+html[data-theme="fd98"] .fd98-home .fd-head h1 {
+  font-family: "Times New Roman", Times, serif; font-size: 44px; font-weight: normal; font-variant: small-caps; text-transform: none; letter-spacing: 0;
+  color: #000; text-shadow: 3px 3px 4px rgba(0, 0, 0, .35);
+}
+html[data-theme="fd98"] .fd98-home .fd-head div { display: none; }
+html[data-theme="fd98"] .fd98-home .fd-head p { font-family: "Times New Roman", Times, serif; font-style: italic; font-weight: bold; font-size: 20px; color: var(--fd-blue); }
 
-/* Grilles et tuiles : boutons gris biseautés, sans photo */
-html[data-theme="fd98"] .fd98-home .fd-grid { margin: 0 10px; gap: 6px; }
+/* Grille : 3 colonnes de grandes tuiles sans cadre ; les trois pages passées dans la barre HOME en sont retirées */
+html[data-theme="fd98"] .fd98-home .fd-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; margin: 0; }
+html[data-theme="fd98"] .fd98-home .fd-tile[data-link="/forms"],
+html[data-theme="fd98"] .fd98-home .fd-tile[data-link="/map"],
+html[data-theme="fd98"] .fd98-home .fd-tile[data-link="/calendar"] { display: none; }
 html[data-theme="fd98"] .fd98-home .fd-tile {
-  height: auto; min-height: 84px; background: var(--fd-grey); border: 0; box-shadow: var(--fd-bevel-out);
-  align-items: flex-start; justify-content: flex-start; text-align: left; padding: 8px 10px; overflow: visible;
+  height: 150px; min-height: 0; background: none; border: 0; box-shadow: none; padding: 0 0 0 6%; overflow: hidden;
+  align-items: center; justify-content: flex-start; text-align: left;
 }
-html[data-theme="fd98"] .fd98-home .fd-tile:hover { background: var(--fd-light); }
-html[data-theme="fd98"] .fd98-home .fd-tile:active { box-shadow: var(--fd-bevel-in); }
-html[data-theme="fd98"] .fd98-home .fd-tile:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
-html[data-theme="fd98"] .fd98-home .fd-img,
+html[data-theme="fd98"] .fd98-home .fd-tile:nth-child(3n + 2) { padding-left: 20%; }
+html[data-theme="fd98"] .fd98-home .fd-tile:nth-child(3n) { padding-left: 11%; }
+html[data-theme="fd98"] .fd98-home .fd-tile:not(:has(.fd-img)) { background: linear-gradient(100deg, #e4ecf7 0%, #fff 75%); }
+/* La photo se fond dans le blanc ; le titre bleu, grand et ombré, passe par-dessus */
+html[data-theme="fd98"] .fd98-home .fd-img {
+  display: block; inset: 8px 0; height: calc(100% - 16px); opacity: .6; filter: grayscale(.45); transform: none;
+  -webkit-mask-image: radial-gradient(ellipse 62% 70% at 55% 50%, #000 25%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 70% at 55% 50%, #000 25%, transparent 100%);
+}
+html[data-theme="fd98"] .fd98-home .fd-img { color: transparent; font-size: 0; }
 html[data-theme="fd98"] .fd98-home .fd-shade { display: none; }
-html[data-theme="fd98"] .fd98-home .fd-body { align-items: flex-start; }
-html[data-theme="fd98"] .fd98-home .fd-ico { width: 22px; height: 22px; color: var(--fd-navy); margin-bottom: 4px; stroke-width: 1.5; }
-html[data-theme="fd98"] .fd98-home .fd-logo { width: 36px; height: 36px; margin-bottom: 4px; box-shadow: var(--fd-bevel-in); background: #fff; padding: 2px; }
-html[data-theme="fd98"] .fd98-home .fd-title { color: #0000ee; text-decoration: underline; font-size: 13px; font-weight: bold; margin-bottom: 2px; }
-html[data-theme="fd98"] .fd98-home .fd-tile:visited .fd-title { color: #551a8b; }
-html[data-theme="fd98"] .fd98-home .fd-desc { color: #000; font-size: 11px; padding: 0; line-height: 1.3; }
+html[data-theme="fd98"] .fd98-home .fd-body { align-items: flex-start; max-width: 82%; }
+html[data-theme="fd98"] .fd98-home .fd-ico { display: none; }
+html[data-theme="fd98"] .fd98-home .fd-logo { width: 42px; height: 42px; margin-bottom: 4px; background: none; filter: none; }
+html[data-theme="fd98"] .fd98-home .fd-title {
+  font-family: "Times New Roman", Times, serif; font-size: 30px; line-height: 1.05; font-weight: bold; font-variant: small-caps; color: var(--fd-blue);
+  text-decoration: none; margin: 0; text-shadow: 2px 2px 4px rgba(0, 0, 0, .35);
+}
+html[data-theme="fd98"] .fd98-home .fd-tile:hover .fd-title { text-decoration: underline; }
+html[data-theme="fd98"] .fd98-home .fd-tile:focus-visible { outline: 1px dotted #000; outline-offset: -4px; }
+html[data-theme="fd98"] .fd98-home .fd-desc { display: none; }
+
+/* Ligne de liens texte sous la grille, séparés par « || » */
+html[data-theme="fd98"] .fd98-home .fd-links { margin: 14px 0 0; text-align: center; font-family: "Times New Roman", Times, serif; font-size: 15px; }
+html[data-theme="fd98"] .fd98-home .fd-links a { color: var(--fd-link); text-decoration: underline; }
+html[data-theme="fd98"] .fd98-home .fd-foot { margin: 16px 0 0; padding-top: 8px; border-top: 1px solid #777; font-size: 11px; font-style: italic; color: #333; text-align: center; font-family: "Times New Roman", Times, serif; }
 
 /* Séparateur divisionnaire */
-html[data-theme="fd98"] .fd98-home .fd-hr { height: 2px; background: none; border-top: 1px solid #808080; border-bottom: 1px solid #fff; margin: 16px 10px 0; }
-html[data-theme="fd98"] .fd98-home .fd-sep { color: #000; font-weight: bold; font-size: 11px; letter-spacing: 0; text-transform: none; text-align: left; margin: 8px 10px 6px; }
+html[data-theme="fd98"] .fd98-home .fd-hr { height: 0; background: none; border-top: 1px solid #777; margin: 22px 0 0; }
+html[data-theme="fd98"] .fd98-home .fd-sep { color: var(--fd-blue); font-family: "Times New Roman", Times, serif; font-weight: bold; font-size: 18px; letter-spacing: 0; text-transform: none; text-align: left; margin: 8px 0 10px; }

@@ -5,6 +5,13 @@ import { Suspense } from "react";
 import { getVisibleModules } from "@/lib/access";
 import { DivisionDashboard } from "@/components/DivisionDashboard";
 
+/** Style fd98 : ces trois modules quittent la grille et passent en boutons dans la barre « HOME ». */
+const HOME_SHORTCUTS = [
+  { link: "/forms", label: "FORMS" },
+  { link: "/map", label: "MAP" },
+  { link: "/calendar", label: "SCHEDULE" },
+];
+
 export default function Home() {
   return (
     <Suspense fallback={<p className="text-sm text-slate-500">Chargement…</p>}>
@@ -17,8 +24,15 @@ async function HomeContent() {
   const modules = await getVisibleModules();
   return (
     <main className="max-w-6xl mx-auto flex flex-col font-['Calibri','Arial',sans-serif]">
-      {/* Style fd98 uniquement (masqué par défaut) : barre de titre façon fenêtre 98 */}
-      <div className="fd-only fd-titlebar"><span>Los Santos Fire Department — Intranet</span><span aria-hidden="true">_ □ ×</span></div>
+      {/* Style fd98 uniquement (masqué par défaut) : barre « HOME » avec raccourcis FORMS / MAP / SCHEDULE */}
+      <div className="fd-only fd-homebar">
+        <span className="fd-homebox">Home</span>
+        <nav className="fd-homebtns" aria-label="Raccourcis">
+          {HOME_SHORTCUTS.filter((x) => modules.some((m) => m.link === x.link)).map((x) => (
+            <Link key={x.link} href={x.link}>{x.label}</Link>
+          ))}
+        </nav>
+      </div>
       
       {/* En-tête de la page d'accueil inspiré de l'image */}
       <div className="fd-head flex items-center gap-4 mb-8 mt-4">
@@ -34,6 +48,7 @@ async function HomeContent() {
     <Link 
       key={`${mod.id}-${mod.title}`} 
       href={mod.link}
+      data-link={mod.link}
       className="fd-tile group relative h-40 bg-slate-800 overflow-hidden flex flex-col items-center justify-center p-4 text-center border border-white hover:border-[#c00d0d] transition-colors"
     >
       <img src={mod.image} alt={mod.title} className="fd-img absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -57,6 +72,11 @@ async function HomeContent() {
         <DivisionDashboard />
       </Suspense>
 
+      <p className="fd-only fd-links">
+        {modules.filter((m) => !HOME_SHORTCUTS.some((x) => x.link === m.link)).map((m, i) => (
+          <span key={`${m.id}-${m.title}`}>{i > 0 && " || "}<Link href={m.link}>{m.title}</Link></span>
+        ))}
+      </p>
       <p className="fd-only fd-foot">Meilleure résolution : 800 × 600 · Navigateur recommandé : Internet Explorer 4.0 · © Los Santos Fire Department</p>
     </main>
   );

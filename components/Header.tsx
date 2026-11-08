@@ -30,7 +30,7 @@ export function Header({ toggleSidebar, showBurger, userSlot, toughbookSlot }: H
       </div>
 
       {/* Zone Centrale : Barre de recherche (Toujours visible) */}
-      <div className="flex justify-center w-1/3">
+      <div className="fd-searchbox flex justify-center w-1/3">
         <div className="relative w-full max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-400">
@@ -47,6 +47,11 @@ export function Header({ toggleSidebar, showBurger, userSlot, toughbookSlot }: H
 
       {/* Zone Droite : Navigation Rapide & Profil Utilisateur */}
       <div className="flex items-center justify-end gap-3 w-1/3">
+        {/* Style fd98 uniquement : loupe + « Search the site » à la place de la barre de recherche */}
+        <button type="button" className="fd-only fd-search" title="Search the site">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true" width="30" height="30"><circle cx="13" cy="13" r="9" fill="#eaf1fb" stroke="#222" strokeWidth="3" /><path d="M20 20 L29 29" stroke="#222" strokeWidth="5" strokeLinecap="round" /></svg>
+          <span>Search the site</span>
+        </button>
         
         {/* Accès au MDC (Toughbook), à gauche du bouton Home / panneau admin */}
         {toughbookSlot}
