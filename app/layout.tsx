@@ -7,6 +7,7 @@ import { ChromeGate } from "@/components/ChromeGate";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { HeaderUser, HeaderUserSkeleton } from "@/components/HeaderUser";
 import { ToughbookLink } from "@/components/ToughbookLink";
+import { Fd98Toggle } from "@/components/Fd98Toggle";
 import { SidebarLinks, SidebarLinksSkeleton } from "@/components/SidebarLinks";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} flex flex-col h-screen overflow-hidden bg-slate-100`}>
         <Suspense fallback={null}>
           <ChromeGate><OfficialBanner /></ChromeGate>
@@ -49,6 +50,9 @@ export default function RootLayout({
         >
           {children}
         </DashboardLayout>
+        </Suspense>
+        <Suspense fallback={null}>
+          <Fd98Toggle />
         </Suspense>
       </body>
     </html>

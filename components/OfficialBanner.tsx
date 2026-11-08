@@ -1,6 +1,6 @@
 export function OfficialBanner() {
   return (
-    <div className="bg-[#0d2644] text-white flex justify-between items-center px-5 py-2 text-[13px] font-sans">
+    <div className="fd-banner bg-[#0d2644] text-white flex justify-between items-center px-5 py-2 text-[13px] font-sans">
       
       {/* Partie Gauche : Sceau et Texte */}
       <div className="flex items-center gap-2">

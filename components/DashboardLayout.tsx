@@ -39,7 +39,7 @@ export function DashboardLayout({ children, userSlot, navSlot, toughbookSlot }: 
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className={`flex flex-1 overflow-hidden${isHomePage ? " fd98-home" : ""}`}>
       {/* La sidebar n'est rendue que si on N'EST PAS sur la page d'accueil */}
       {!isHomePage && <Sidebar isOpen={isSidebarOpen} linksSlot={navSlot} />}
 
@@ -50,7 +50,7 @@ export function DashboardLayout({ children, userSlot, navSlot, toughbookSlot }: 
           userSlot={userSlot}
           toughbookSlot={toughbookSlot}
         />
-        <main className="flex-1 overflow-y-auto p-6 bg-white">
+        <main className="fd-main flex-1 overflow-y-auto p-6 bg-white">
           {children}
         </main>
       </div>
