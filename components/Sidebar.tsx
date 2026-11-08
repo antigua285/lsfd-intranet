@@ -4,9 +4,11 @@ interface SidebarProps {
   isOpen: boolean;
   /** Liens de la sidebar, filtrés selon les flags du compte (rendus côté serveur). */
   linksSlot: React.ReactNode;
+  /** Style fd98 uniquement : bloc profil placé dans le menu (masqué en affichage moderne). */
+  profileSlot?: React.ReactNode;
 }
 
-export function Sidebar({ isOpen, linksSlot }: SidebarProps) {
+export function Sidebar({ isOpen, linksSlot, profileSlot }: SidebarProps) {
   return (
     <div 
       className={`transition-all duration-300 ease-in-out shrink-0 overflow-hidden bg-white ${
@@ -20,6 +22,13 @@ export function Sidebar({ isOpen, linksSlot }: SidebarProps) {
             Quick Links
           </p>
         </div>
+
+        {profileSlot && (
+          <div className="fd-only fd-side-user">
+            <p className="fd-side-title">Mon compte</p>
+            {profileSlot}
+          </div>
+        )}
 
         <nav className="flex-1 bg-white pt-2 overflow-y-auto">
           {linksSlot}

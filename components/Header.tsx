@@ -74,7 +74,7 @@ export function Header({ toggleSidebar, showBurger, userSlot, toughbookSlot }: H
         )}
 
         {/* Profil Utilisateur (utilisateur connecté, cliquable vers /profile) */}
-        {userSlot}
+        <div className="fd-hdr-user">{userSlot}</div>
       </div>
 
     </header>

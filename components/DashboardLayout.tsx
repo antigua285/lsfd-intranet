@@ -43,7 +43,7 @@ export function DashboardLayout({ children, userSlot, navSlot, toughbookSlot }: 
       {/* La sidebar n'est rendue que si on N'EST PAS sur la page d'accueil */}
       {!isHomePage && <Sidebar isOpen={isSidebarOpen} linksSlot={navSlot} />}
       {/* Accueil : menu latéral réservé au style fd98 (masqué par défaut), toujours déroulé */}
-      {isHomePage && <div className="fd-side"><Sidebar isOpen linksSlot={navSlot} /></div>}
+      {isHomePage && <div className="fd-side"><Sidebar isOpen linksSlot={navSlot} profileSlot={userSlot} /></div>}
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header
